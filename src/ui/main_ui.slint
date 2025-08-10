@@ -1,0 +1,258 @@
+import { VerticalBox, HorizontalBox, TabWidget, ScrollView, Button, ComboBox, LineEdit } from "std-widgets.slint";
+
+export struct NetworkInterface {
+    name: string,
+    ip_addresses: [string],
+    is_up: bool,
+    is_loopback: bool,
+}
+
+export struct PortInfo {
+    process_id: string,
+    process_name: string,
+    protocol: string,
+    port: string,
+    direction: string,
+    network: string,
+}
+
+export struct FirewallRule {
+    name: string,
+    enabled: string,
+    direction: string,
+    action: string,
+    protocol: string,
+    local_address: string,
+    remote_address: string,
+}
+
+export struct Route {
+    destination: string,
+    gateway: string,
+    interface: string,
+    metric: string,
+}
+
+export struct DockerNetwork {
+    name: string,
+    driver: string,
+    scope: string,
+    subnet: string,
+}
+
+export component MainWindow inherits Window {
+    width: 1024px;
+    height: 768px;
+    title: "WSL Network Manager";
+    
+    in property <[NetworkInterface]> network-interfaces: [];
+    in property <[PortInfo]> ports: [];
+    in property <[FirewallRule]> firewall-rules: [];
+    in property <[Route]> routes: [];
+    in property <[DockerNetwork]> docker-networks: [];
+    in property <string> ping-response: "";
+    in property <string> http-response: "";
+    in property <string> raw-output: "";
+    
+    out property <int> selected-network-index: -1;
+    out property <string> selected-network-type: "";
+    out property <string> packet-type: "ping";
+    out property <string> destination: "";
+    out property <string> selected-interface: "";
+    
+    callback network-selected(int);
+    callback send-packet();
+    callback refresh-data();
+    
+    VerticalBox {
+        HorizontalBox {
+            Button {
+                text: "Refresh";
+                clicked => {
+                    refresh-data();
+                }
+            }
+        }
+        
+        TabWidget {
+            Tab {
+                title: "Networks";
+                VerticalBox {
+                    Text {
+                        text: "Networks";
+                        font-size: 18px;
+                        font-weight: 700;
+                    }
+                    
+                    HorizontalBox {
+                        ScrollView {
+                            width: 300px;
+                            VerticalBox {
+                                for network in network-interfaces: Text {
+                                    text: network.name + ": " + network.ip_addresses[0]; // Simplified for now
+                                }
+                            }
+                        }
+                        
+                        ScrollView {
+                            width: 700px;
+                            VerticalBox {
+                                for port in ports: HorizontalBox {
+                                    Text { text: port.process-id; }
+                                    Text { text: port.process-name; }
+                                    Text { text: port.protocol; }
+                                    Text { text: port.port; }
+                                    Text { text: port.direction; }
+                                    Text { text: port.network; }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Tab {
+                title: "Firewall";
+                VerticalBox {
+                    Text {
+                        text: "Firewall Rules";
+                        font-size: 18px;
+                        font-weight: 700;
+                    }
+                    
+                    ScrollView {
+                        VerticalBox {
+                            for rule in firewall-rules: HorizontalBox {
+                                Text { text: rule.name; }
+                                Text { text: rule.enabled; }
+                                Text { text: rule.direction; }
+                                Text { text: rule.action; }
+                                Text { text: rule.protocol; }
+                                Text { text: rule.local-address; }
+                                Text { text: rule.remote-address; }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Tab {
+                title: "Routing";
+                VerticalBox {
+                    Text {
+                        text: "Routing Table";
+                        font-size: 18px;
+                        font-weight: 700;
+                    }
+                    
+                    ScrollView {
+                        VerticalBox {
+                            for route in routes: HorizontalBox {
+                                Text { text: route.destination; }
+                                Text { text: route.gateway; }
+                                Text { text: route.interface; }
+                                Text { text: route.metric; }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Tab {
+                title: "Docker";
+                VerticalBox {
+                    Text {
+                        text: "Docker Networks";
+                        font-size: 18px;
+                        font-weight: 700;
+                    }
+                    
+                    ScrollView {
+                        VerticalBox {
+                            for docker in docker-networks: HorizontalBox {
+                                Text { text: docker.name; }
+                                Text { text: docker.driver; }
+                                Text { text: docker.scope; }
+                                Text { text: docker.subnet; }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Tab {
+                title: "Packet Sender";
+                VerticalBox {
+                    Text {
+                        text: "Packet Sender";
+                        font-size: 18px;
+                        font-weight: 700;
+                    }
+                    
+                    HorizontalBox {
+                        Text { text: "Source Network:"; }
+                        // ComboBox {
+                        //     model: network-interfaces;
+                        //     current-value <=> selected-interface;
+                        // }
+                    }
+                    
+                    HorizontalBox {
+                        Text { text: "Packet Type:"; }
+                        ComboBox {
+                            model: ["ping", "HTTP over TCP"];
+                            current-value <=> packet-type;
+                        }
+                    }
+                    
+                    HorizontalBox {
+                        Text { text: "Destination:"; }
+                        LineEdit {
+                            placeholder-text: "Enter IP address or hostname";
+                            text <=> destination;
+                        }
+                    }
+                    
+                    Button {
+                        text: "Send Packet";
+                        clicked => {
+                            send-packet();
+                        }
+                    }
+                    
+                    TabWidget {
+                        Tab {
+                            title: "Ping Response";
+                            ScrollView {
+                                Text {
+                                    text: ping-response;
+                                    wrap: TextWrap.word-wrap;
+                                }
+                            }
+                        }
+                        
+                        Tab {
+                            title: "HTTP Response";
+                            ScrollView {
+                                Text {
+                                    text: http-response;
+                                    wrap: TextWrap.word-wrap;
+                                }
+                            }
+                        }
+                        
+                        Tab {
+                            title: "Raw Output";
+                            ScrollView {
+                                Text {
+                                    text: raw-output;
+                                    wrap: TextWrap.word-wrap;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

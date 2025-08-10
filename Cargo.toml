@@ -1,0 +1,55 @@
+[package]
+name = "wslnetman"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A GUI tool for inspecting and troubleshooting network issues between WSL and Windows"
+license = "MIT"
+repository = "https://github.com/your-username/wslnetman"
+keywords = ["wsl", "network", "gui", "troubleshooting", "windows"]
+categories = ["gui", "network-programming"]
+
+[dependencies]
+# Slint for GUI
+slint = "1.0"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP client for packet sending
+reqwest = "0.11"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# TCP utilities
+tokio-util = { version = "0.7", features = ["codec"] }
+
+# Futures
+futures = "0.3"
+
+# Command line parsing (if needed)
+clap = { version = "4.0", features = ["derive"] }
+
+# Cross-platform utilities
+[target.'cfg(windows)'.dependencies]
+# Windows-specific dependencies
+windows = { version = "0.52", features = [
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_Networking_WinSock",
+] }
+
+[target.'cfg(unix)'.dependencies]
+# Unix-specific dependencies
+nix = "0.27"
+socket2 = "0.5"
+
+[build-dependencies]
+slint-build = "1.0"
+
+[dev-dependencies]
+# Testing dependencies
+tempfile = "3.0"
