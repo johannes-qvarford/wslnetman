@@ -2,7 +2,7 @@ slint::include_modules!();
 
 // Import packet sending modules
 mod packet;
-use packet::{send_ping, send_http_request};
+use packet::{send_http_request, send_ping};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = MainWindow::new()?;
@@ -30,15 +30,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Handle packet sending
         let packet_type = app.get_packet_type();
         let destination = app.get_destination();
-        
+
         // Clone values for async context
         let destination_clone = destination.clone();
         let app_weak_clone = app.as_weak();
-        
+
         // Spawn async task for packet sending
         slint::spawn_local(async move {
             let app = app_weak_clone.unwrap();
-            
+
             if packet_type == "ping" {
                 match send_ping(&destination_clone, Some(4), Some(5)) {
                     Ok(result) => {
@@ -53,10 +53,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             result.avg_time,
                             result.max_time
                         );
-                        
+
                         // Set ping response
                         app.set_ping_response(ping_response.into());
-                        
+
                         // Set raw output
                         app.set_raw_output(result.raw_output.into());
                     }
@@ -78,10 +78,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             result.response_headers,
                             result.response_body
                         );
-                        
+
                         // Set HTTP response
                         app.set_http_response(http_response.into());
-                        
+
                         // Set raw output
                         app.set_raw_output(result.raw_output.into());
                     }
