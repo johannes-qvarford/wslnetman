@@ -5,6 +5,7 @@ export struct NetworkInterface {
     ip_addresses: [string],
     is_up: bool,
     is_loopback: bool,
+    environment: string,  // New field to identify source environment
 }
 
 export struct PortInfo {
@@ -16,22 +17,6 @@ export struct PortInfo {
     network: string,
 }
 
-export struct FirewallRule {
-    name: string,
-    enabled: string,
-    direction: string,
-    action: string,
-    protocol: string,
-    local_address: string,
-    remote_address: string,
-}
-
-export struct Route {
-    destination: string,
-    gateway: string,
-    interface: string,
-    metric: string,
-}
 
 export struct DockerNetwork {
     name: string,
@@ -47,8 +32,6 @@ export component MainWindow inherits Window {
     
     in property <[NetworkInterface]> network-interfaces: [];
     in property <[PortInfo]> ports: [];
-    in property <[FirewallRule]> firewall-rules: [];
-    in property <[Route]> routes: [];
     in property <[DockerNetwork]> docker-networks: [];
     in property <string> ping-response: "";
     in property <string> http-response: "";
@@ -88,8 +71,28 @@ export component MainWindow inherits Window {
                         ScrollView {
                             width: 300px;
                             VerticalBox {
-                                for network in network-interfaces: Text {
-                                    text: network.name + ": " + network.ip_addresses[0]; // Simplified for now
+                                Text {
+                                    text: "Windows Networks";
+                                    font-weight: 600;
+                                }
+                                for network in network-interfaces : Text {
+                                    text: "  " + network.name + " (" + network.environment + ")";
+                                }
+                                
+                                Text {
+                                    text: "WSL Networks";
+                                    font-weight: 600;
+                                }
+                                for network in network-interfaces : Text {
+                                    text: "  " + network.name + " (" + network.environment + ")";
+                                }
+                                
+                                Text {
+                                    text: "Docker Networks";
+                                    font-weight: 600;
+                                }
+                                for network in network-interfaces : Text {
+                                    text: "  " + network.name + " (" + network.environment + ")";
                                 }
                             }
                         }
@@ -97,7 +100,12 @@ export component MainWindow inherits Window {
                         ScrollView {
                             width: 700px;
                             VerticalBox {
-                                for port in ports: HorizontalBox {
+                                Text {
+                                    text: "Port Information";
+                                    font-size: 16px;
+                                    font-weight: 600;
+                                }
+                                for port in ports : HorizontalBox {
                                     Text { text: port.process-id; }
                                     Text { text: port.process-name; }
                                     Text { text: port.protocol; }
@@ -111,52 +119,6 @@ export component MainWindow inherits Window {
                 }
             }
             
-            Tab {
-                title: "Firewall";
-                VerticalBox {
-                    Text {
-                        text: "Firewall Rules";
-                        font-size: 18px;
-                        font-weight: 700;
-                    }
-                    
-                    ScrollView {
-                        VerticalBox {
-                            for rule in firewall-rules: HorizontalBox {
-                                Text { text: rule.name; }
-                                Text { text: rule.enabled; }
-                                Text { text: rule.direction; }
-                                Text { text: rule.action; }
-                                Text { text: rule.protocol; }
-                                Text { text: rule.local-address; }
-                                Text { text: rule.remote-address; }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            Tab {
-                title: "Routing";
-                VerticalBox {
-                    Text {
-                        text: "Routing Table";
-                        font-size: 18px;
-                        font-weight: 700;
-                    }
-                    
-                    ScrollView {
-                        VerticalBox {
-                            for route in routes: HorizontalBox {
-                                Text { text: route.destination; }
-                                Text { text: route.gateway; }
-                                Text { text: route.interface; }
-                                Text { text: route.metric; }
-                            }
-                        }
-                    }
-                }
-            }
             
             Tab {
                 title: "Docker";

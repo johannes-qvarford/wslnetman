@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ip route:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(git add:*)",
+      "Bash(cargo fmt:*)"
+    ],
+    "deny": []
+  }
+}

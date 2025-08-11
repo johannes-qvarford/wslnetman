@@ -1,17 +1,23 @@
 // Network module
+pub mod docker;
 pub mod windows;
 pub mod wsl;
-pub mod docker;
-pub mod firewall;
-pub mod routing;
 
-/// Represents a network interface with its properties
+/// Represents the environment where a network interface originates
+#[derive(Debug, Clone, PartialEq)]
+pub enum NetworkEnvironment {
+    Windows,
+    Wsl,
+}
+
+/// Represents a network interface with its properties and source environment
 #[derive(Debug, Clone)]
 pub struct NetworkInterface {
     pub name: String,
     pub ip_addresses: Vec<String>,
     pub is_up: bool,
     pub is_loopback: bool,
+    pub environment: NetworkEnvironment, // New field to identify source
 }
 
 /// Represents an active port with its associated process information
@@ -25,7 +31,7 @@ pub struct PortInfo {
     pub network: String,
 }
 
-/// Represents a Docker network with its properties
+/// Represents a Docker network with its properties and source environment
 #[derive(Debug, Clone)]
 pub struct DockerNetwork {
     pub name: String,
@@ -34,39 +40,29 @@ pub struct DockerNetwork {
     pub subnet: String,
 }
 
-/// Represents a firewall rule with its properties
-#[derive(Debug, Clone)]
-pub struct FirewallRule {
-    pub name: String,
-    pub enabled: String,
-    pub direction: String,
-    pub action: String,
-    pub protocol: String,
-    pub local_address: String,
-    pub remote_address: String,
-}
+/// Get network interfaces from all environments
+///
+/// This function returns network interfaces from Windows, WSL, and Docker environments.
+pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::error::Error>> {
+    let mut all_interfaces = Vec::new();
 
-/// Represents a routing rule with its properties
-#[derive(Debug, Clone)]
-pub struct Route {
-    pub destination: String,
-    pub gateway: String,
-    pub interface: String,
-    pub metric: String,
-}
+    // Get Windows network interfaces (through WSL)
+    match windows::get_network_interfaces() {
+        Ok(interfaces) => all_interfaces.extend(interfaces),
+        Err(e) => eprintln!("Error getting Windows network interfaces: {e}"),
+    }
 
-/// Get network interfaces from the current system
-/// 
-/// This function returns network interfaces from either Windows or WSL
-/// depending on the compilation target.
-pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::error::Error>> {
-    // For demonstration purposes, we'll use WSL network discovery
-    // In a real implementation, we would detect the platform and call the appropriate function
-    wsl::get_network_interfaces()
+    // Get WSL network interfaces
+    match wsl::get_network_interfaces() {
+        Ok(interfaces) => all_interfaces.extend(interfaces),
+        Err(e) => eprintln!("Error getting WSL network interfaces: {e}"),
+    }
+
+    Ok(all_interfaces)
 }
 
 /// Get active ports from the current system
-/// 
+///
 /// This function returns active ports from either Windows or WSL
 /// depending on the compilation target.
 pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
@@ -76,30 +72,30 @@ pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
 }
 
 /// Get Docker networks
-/// 
+///
 /// This function returns Docker network information.
-pub fn get_docker_networks() -> Result<Vec<DockerNetwork>, Box<dyn std::error::Error>> {
-    docker::get_docker_networks()
-}
+pub fn get_all_docker_networks() -> Result<Vec<DockerNetwork>, Box<dyn std::error::Error>> {
+    let mut all_networks = Vec::new();
 
-/// Get firewall rules from the current system
-/// 
-/// This function returns firewall rules from either Windows or WSL
-/// depending on the compilation target.
-pub fn get_firewall_rules() -> Result<Vec<FirewallRule>, Box<dyn std::error::Error>> {
-    // For demonstration purposes, we'll use WSL firewall rules
-    // In a real implementation, we would detect the platform and call the appropriate function
-    firewall::wsl::get_firewall_rules()
-}
+    // Get Docker networks
+    match docker::get_docker_networks() {
+        Ok(networks) => {
+            // Convert docker::DockerNetwork to crate::network::DockerNetwork
+            let converted_networks: Vec<DockerNetwork> = networks
+                .into_iter()
+                .map(|network| DockerNetwork {
+                    name: network.name,
+                    driver: network.driver,
+                    scope: network.scope,
+                    subnet: network.subnet,
+                })
+                .collect();
+            all_networks.extend(converted_networks);
+        }
+        Err(e) => eprintln!("Error getting Docker networks: {e}"),
+    }
 
-/// Get routing rules from the current system
-/// 
-/// This function returns routing rules from either Windows or WSL
-/// depending on the compilation target.
-pub fn get_routing_rules() -> Result<Vec<Route>, Box<dyn std::error::Error>> {
-    // For demonstration purposes, we'll use WSL routing rules
-    // In a real implementation, we would detect the platform and call the appropriate function
-    routing::wsl::get_routing_rules()
+    Ok(all_networks)
 }
 
 #[cfg(test)]
@@ -107,8 +103,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_get_network_interfaces() {
-        let interfaces = get_network_interfaces().unwrap();
+    fn test_get_all_network_interfaces() {
+        let interfaces = get_all_network_interfaces().unwrap();
         assert!(!interfaces.is_empty());
     }
 
@@ -119,20 +115,8 @@ mod tests {
     }
 
     #[test]
-    fn test_get_docker_networks() {
-        let networks = get_docker_networks().unwrap();
+    fn test_get_all_docker_networks() {
+        let networks = get_all_docker_networks().unwrap();
         assert!(!networks.is_empty());
-    }
-
-    #[test]
-    fn test_get_firewall_rules() {
-        let rules = get_firewall_rules().unwrap();
-        assert!(!rules.is_empty());
-    }
-
-    #[test]
-    fn test_get_routing_rules() {
-        let rules = get_routing_rules().unwrap();
-        assert!(!rules.is_empty());
     }
 }
