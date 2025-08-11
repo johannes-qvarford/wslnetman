@@ -24,6 +24,8 @@ WSL Network Manager is a GUI application for inspecting and troubleshooting netw
 - `src/packet/`: Packet sending functionality (ping, HTTP)
 
 ## Build & Development
+
+### Standard WSL/Linux Build
 ```bash
 # Build the project
 cargo build
@@ -38,6 +40,30 @@ cargo test
 cargo check
 cargo clippy
 ```
+
+### Cross-Compilation for Windows
+The project includes scripts for cross-compiling to Windows and running the native Windows version from WSL:
+
+```bash
+# Build Windows executable (requires mingw-w64)
+./build-windows.sh [debug|release]
+
+# Build and run Windows version directly
+./run-windows.sh [debug|release]
+
+# Or run pre-built Windows executable
+./target/x86_64-pc-windows-gnu/release/wslnetman.exe
+```
+
+#### Prerequisites for Windows Cross-Compilation
+- MinGW-w64 toolchain: `sudo apt install mingw-w64`
+- Windows target: `rustup target add x86_64-pc-windows-gnu` (automatically installed by build script)
+
+#### Windows vs WSL Runtime Behavior
+- **WSL Version**: Uses `powershell.exe` calls for Windows network discovery (WSL interop)
+- **Windows Version**: Runs natively on Windows, direct PowerShell access
+- **GUI**: Both versions use the same Slint-based interface
+- **Network Discovery**: Windows version has more direct access to Windows networking APIs
 
 ## Current Implementation Status
 - ✅ Network interface discovery (Windows + WSL + Docker)

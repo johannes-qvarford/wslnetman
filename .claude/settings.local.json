@@ -6,7 +6,10 @@
       "Bash(cargo check:*)",
       "Bash(cargo clippy:*)",
       "Bash(git add:*)",
-      "Bash(cargo fmt:*)"
+      "Bash(cargo fmt:*)",
+      "Bash(rustup target list:*)",
+      "Bash(chmod:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
