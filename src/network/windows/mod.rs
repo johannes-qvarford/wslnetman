@@ -14,7 +14,17 @@ struct WindowsIPAddress {
     #[serde(rename = "IPAddress")]
     ip_address: String,
     #[serde(rename = "AddressFamily")]
-    address_family: String,
+    address_family: u32, // 2 = IPv4, 23 = IPv6
+}
+
+#[derive(Deserialize, Debug)]
+struct WindowsNetAdapter {
+    #[serde(rename = "Name")]
+    name: String,
+    #[serde(rename = "Status")]
+    status: String,
+    #[serde(rename = "MacAddress")]
+    mac_address: Option<String>,
 }
 
 /// Get network interfaces from Windows system
@@ -30,31 +40,67 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
         .output();
 
     // Try to get adapter information from Windows
-    let _adapter_output = Command::new("powershell.exe")
+    let adapter_output = Command::new("powershell.exe")
         .args([
             "-Command",
-            "Get-NetAdapter | Select-Object Name, InterfaceDescription, ifIndex, Status | ConvertTo-Json"
+            "Get-NetAdapter | Select-Object Name, InterfaceDescription, ifIndex, Status, MacAddress | ConvertTo-Json"
         ])
         .output();
 
     let mut interfaces = Vec::new();
 
+    // Parse adapter information to get MAC addresses
+    let mut adapter_map: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    let mut adapter_status_map: std::collections::HashMap<String, bool> =
+        std::collections::HashMap::new();
+
+    if let Ok(adapter_output) = adapter_output {
+        if adapter_output.status.success() {
+            // Try to parse JSON output - handle both single object and array cases
+            let adapter_result = serde_json::from_slice::<Vec<WindowsNetAdapter>>(
+                &adapter_output.stdout,
+            )
+            .or_else(|_| {
+                // If parsing as array fails, try parsing as single object
+                serde_json::from_slice::<WindowsNetAdapter>(&adapter_output.stdout)
+                    .map(|single| vec![single])
+            });
+
+            if let Ok(adapters) = adapter_result {
+                for adapter in adapters {
+                    if let Some(mac) = adapter.mac_address {
+                        // Clean up MAC address format (remove dashes, add colons)
+                        let clean_mac = mac.replace("-", ":");
+                        adapter_map.insert(adapter.name.clone(), clean_mac);
+                    }
+                    adapter_status_map.insert(adapter.name.clone(), adapter.status == "Up");
+                }
+            }
+        }
+    }
+
     // Process IP address information if available
     if let Ok(ip_output) = ip_output {
         if ip_output.status.success() {
-            // Try to parse JSON output
-            if let Ok(ip_addresses) =
-                serde_json::from_slice::<Vec<WindowsIPAddress>>(&ip_output.stdout)
-            {
+            // Try to parse JSON output - handle both single object and array cases
+            let ip_result = serde_json::from_slice::<Vec<WindowsIPAddress>>(&ip_output.stdout)
+                .or_else(|_| {
+                    // If parsing as array fails, try parsing as single object
+                    serde_json::from_slice::<WindowsIPAddress>(&ip_output.stdout)
+                        .map(|single| vec![single])
+                });
+
+            if let Ok(ip_addresses) = ip_result {
                 // Group IP addresses by interface
                 let mut interface_map: std::collections::HashMap<String, Vec<String>> =
                     std::collections::HashMap::new();
 
                 for ip_info in ip_addresses {
-                    // Only include IPv4 and IPv6 addresses
-                    if ip_info.address_family == "IPv4" || ip_info.address_family == "IPv6" {
+                    // Only include IPv4 and IPv6 addresses (2 = IPv4, 23 = IPv6)
+                    if ip_info.address_family == 2 || ip_info.address_family == 23 {
                         interface_map
-                            .entry(ip_info.interface_alias)
+                            .entry(ip_info.interface_alias.clone())
                             .or_default()
                             .push(ip_info.ip_address);
                     }
@@ -62,10 +108,14 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
 
                 // Create NetworkInterface objects
                 for (name, ip_addresses) in interface_map {
+                    let mac_address = adapter_map.get(&name).cloned();
+                    let is_up = adapter_status_map.get(&name).copied().unwrap_or(true);
+
                     interfaces.push(NetworkInterface {
                         name: name.clone(),
                         ip_addresses,
-                        is_up: true, // Assume interfaces are up for now
+                        mac_address,
+                        is_up,
                         is_loopback: name.contains("Loopback") || name.contains("lo"),
                         environment: NetworkEnvironment::Windows,
                     });
@@ -82,6 +132,7 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                 "192.168.1.100".to_string(),
                 "fe80::1234:5678:9abc:def0".to_string(),
             ],
+            mac_address: Some("00:15:5d:12:34:56".to_string()),
             is_up: true,
             is_loopback: false,
             environment: NetworkEnvironment::Windows,
@@ -93,6 +144,7 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                 "192.168.0.105".to_string(),
                 "fe80::abcd:ef01:2345:6789".to_string(),
             ],
+            mac_address: Some("aa:bb:cc:dd:ee:ff".to_string()),
             is_up: true,
             is_loopback: false,
             environment: NetworkEnvironment::Windows,
@@ -101,6 +153,7 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
         interfaces.push(NetworkInterface {
             name: "Windows Loopback".to_string(),
             ip_addresses: vec!["127.0.0.1".to_string(), "::1".to_string()],
+            mac_address: None,
             is_up: true,
             is_loopback: true,
             environment: NetworkEnvironment::Windows,

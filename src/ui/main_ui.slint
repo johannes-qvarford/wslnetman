@@ -3,6 +3,7 @@ import { VerticalBox, HorizontalBox, TabWidget, ScrollView, Button, ComboBox, Li
 export struct NetworkInterface {
     name: string,
     ip_addresses: [string],
+    mac_address: string,
     is_up: bool,
     is_loopback: bool,
     environment: string,  // New field to identify source environment
@@ -69,30 +70,60 @@ export component MainWindow inherits Window {
                     
                     HorizontalBox {
                         ScrollView {
-                            width: 300px;
+                            width: 100%;
                             VerticalBox {
-                                Text {
-                                    text: "Windows Networks";
-                                    font-weight: 600;
-                                }
-                                for network in network-interfaces : Text {
-                                    text: "  " + network.name + " (" + network.environment + ")";
-                                }
-                                
-                                Text {
-                                    text: "WSL Networks";
-                                    font-weight: 600;
-                                }
-                                for network in network-interfaces : Text {
-                                    text: "  " + network.name + " (" + network.environment + ")";
+                                // Header row
+                                HorizontalBox {
+                                    Text { text: "Environment"; width: 120px; font-weight: 600; }
+                                    Text { text: "Interface"; width: 150px; font-weight: 600; }
+                                    Text { text: "MAC Address"; width: 140px; font-weight: 600; }
+                                    Text { text: "IP Addresses"; width: 250px; font-weight: 600; }
+                                    Text { text: "Status"; width: 80px; font-weight: 600; }
                                 }
                                 
-                                Text {
-                                    text: "Docker Networks";
-                                    font-weight: 600;
+                                // Separator
+                                Rectangle {
+                                    height: 1px;
+                                    background: #cccccc;
                                 }
-                                for network in network-interfaces : Text {
-                                    text: "  " + network.name + " (" + network.environment + ")";
+                                
+                                // Network interfaces data
+                                for network in network-interfaces : HorizontalBox {
+                                    Text { 
+                                        text: network.environment; 
+                                        width: 120px; 
+                                        color: network.environment == "Windows" ? #0066cc : (network.environment == "WSL" ? #009900 : #666666);
+                                        font-weight: 500;
+                                    }
+                                    Text { 
+                                        text: network.name; 
+                                        width: 150px; 
+                                        font-weight: network.is_loopback ? 400 : 500;
+                                    }
+                                    Text { 
+                                        text: network.mac_address == "" ? "N/A" : network.mac_address; 
+                                        width: 140px;
+                                        font-family: "monospace";
+                                    }
+                                    Text { 
+                                        text: {
+                                            // Join IP addresses with commas - simplified approach
+                                            network.ip_addresses.length > 0 ? (
+                                                network.ip_addresses.length > 1 ? 
+                                                    network.ip_addresses[0] + ", " + (network.ip_addresses.length > 2 ? network.ip_addresses[1] + ", ..." : network.ip_addresses[1])
+                                                    : network.ip_addresses[0]
+                                            ) : "N/A"
+                                        };
+                                        width: 250px;
+                                        wrap: TextWrap.word-wrap;
+                                        font-family: "monospace";
+                                    }
+                                    Text { 
+                                        text: network.is_up ? "UP" : "DOWN"; 
+                                        width: 80px;
+                                        color: network.is_up ? #009900 : #cc0000;
+                                        font-weight: 600;
+                                    }
                                 }
                             }
                         }

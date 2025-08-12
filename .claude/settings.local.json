@@ -9,7 +9,8 @@
       "Bash(cargo fmt:*)",
       "Bash(rustup target list:*)",
       "Bash(chmod:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

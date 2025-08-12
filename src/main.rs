@@ -8,90 +8,102 @@ use packet::{send_http_request, send_ping};
 mod network;
 use network::{get_active_ports, get_all_docker_networks, get_all_network_interfaces};
 
+/// Refresh all data for the application
+fn refresh_all_data(app_weak: &slint::Weak<MainWindow>) {
+    let app = app_weak.unwrap();
+    println!("Refreshing data...");
+
+    // Refresh network interfaces
+    match get_all_network_interfaces() {
+        Ok(interfaces) => {
+            // Convert to Slint-compatible format
+            let slint_interfaces: Vec<slint_generatedMainWindow::NetworkInterface> = interfaces
+                .into_iter()
+                .map(|interface| slint_generatedMainWindow::NetworkInterface {
+                    name: interface.name.into(),
+                    ip_addresses: interface
+                        .ip_addresses
+                        .iter()
+                        .map(|ip| ip.clone().into())
+                        .collect::<Vec<_>>()
+                        .as_slice()
+                        .into(),
+                    mac_address: interface
+                        .mac_address
+                        .unwrap_or_else(|| "N/A".to_string())
+                        .into(),
+                    is_up: interface.is_up,
+                    is_loopback: interface.is_loopback,
+                    environment: match interface.environment {
+                        network::NetworkEnvironment::Windows => "Windows".into(),
+                        network::NetworkEnvironment::Wsl => "WSL".into(),
+                    },
+                })
+                .collect();
+
+            app.set_network_interfaces(slint_interfaces.as_slice().into());
+        }
+        Err(e) => {
+            eprintln!("Error getting network interfaces: {e}");
+        }
+    }
+
+    // Refresh ports
+    match get_active_ports() {
+        Ok(ports) => {
+            // Convert to Slint-compatible format
+            let slint_ports: Vec<slint_generatedMainWindow::PortInfo> = ports
+                .into_iter()
+                .map(|port| slint_generatedMainWindow::PortInfo {
+                    process_id: port.process_id.into(),
+                    process_name: port.process_name.into(),
+                    protocol: port.protocol.into(),
+                    port: port.port.into(),
+                    direction: port.direction.into(),
+                    network: port.network.into(),
+                })
+                .collect();
+
+            app.set_ports(slint_ports.as_slice().into());
+        }
+        Err(e) => {
+            eprintln!("Error getting active ports: {e}");
+        }
+    }
+
+    // Refresh Docker networks
+    match get_all_docker_networks() {
+        Ok(networks) => {
+            // Convert to Slint-compatible format
+            let slint_networks: Vec<slint_generatedMainWindow::DockerNetwork> = networks
+                .into_iter()
+                .map(|network| slint_generatedMainWindow::DockerNetwork {
+                    name: network.name.into(),
+                    driver: network.driver.into(),
+                    scope: network.scope.into(),
+                    subnet: network.subnet.into(),
+                })
+                .collect();
+
+            app.set_docker_networks(slint_networks.as_slice().into());
+        }
+        Err(e) => {
+            eprintln!("Error getting Docker networks: {e}");
+        }
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = MainWindow::new()?;
+
+    // Load initial data on startup
+    let app_weak = app.as_weak();
+    refresh_all_data(&app_weak);
 
     // Set up callbacks
     let app_weak = app.as_weak();
     app.on_refresh_data(move || {
-        let app = app_weak.unwrap();
-        // Refresh all data
-        println!("Refreshing data...");
-
-        // Refresh network interfaces
-        match get_all_network_interfaces() {
-            Ok(interfaces) => {
-                // Convert to Slint-compatible format
-                let slint_interfaces: Vec<slint_generatedMainWindow::NetworkInterface> = interfaces
-                    .into_iter()
-                    .map(|interface| slint_generatedMainWindow::NetworkInterface {
-                        name: interface.name.into(),
-                        ip_addresses: interface
-                            .ip_addresses
-                            .iter()
-                            .map(|ip| ip.clone().into())
-                            .collect::<Vec<_>>()
-                            .as_slice()
-                            .into(),
-                        is_up: interface.is_up,
-                        is_loopback: interface.is_loopback,
-                        environment: match interface.environment {
-                            network::NetworkEnvironment::Windows => "Windows".into(),
-                            network::NetworkEnvironment::Wsl => "WSL".into(),
-                        },
-                    })
-                    .collect();
-
-                app.set_network_interfaces(slint_interfaces.as_slice().into());
-            }
-            Err(e) => {
-                eprintln!("Error getting network interfaces: {e}");
-            }
-        }
-
-        // Refresh ports
-        match get_active_ports() {
-            Ok(ports) => {
-                // Convert to Slint-compatible format
-                let slint_ports: Vec<slint_generatedMainWindow::PortInfo> = ports
-                    .into_iter()
-                    .map(|port| slint_generatedMainWindow::PortInfo {
-                        process_id: port.process_id.into(),
-                        process_name: port.process_name.into(),
-                        protocol: port.protocol.into(),
-                        port: port.port.into(),
-                        direction: port.direction.into(),
-                        network: port.network.into(),
-                    })
-                    .collect();
-
-                app.set_ports(slint_ports.as_slice().into());
-            }
-            Err(e) => {
-                eprintln!("Error getting active ports: {e}");
-            }
-        }
-
-        // Refresh Docker networks
-        match get_all_docker_networks() {
-            Ok(networks) => {
-                // Convert to Slint-compatible format
-                let slint_networks: Vec<slint_generatedMainWindow::DockerNetwork> = networks
-                    .into_iter()
-                    .map(|network| slint_generatedMainWindow::DockerNetwork {
-                        name: network.name.into(),
-                        driver: network.driver.into(),
-                        scope: network.scope.into(),
-                        subnet: network.subnet.into(),
-                    })
-                    .collect();
-
-                app.set_docker_networks(slint_networks.as_slice().into());
-            }
-            Err(e) => {
-                eprintln!("Error getting Docker networks: {e}");
-            }
-        }
+        refresh_all_data(&app_weak);
     });
 
     let app_weak = app.as_weak();

@@ -8,17 +8,29 @@ use std::process::Command;
 
 /// Get network interfaces from WSL system
 ///
-/// This function uses the `ip addr` command to get network interface information.
+/// This function uses the `ip addr` and `ip link` commands to get network interface information.
 pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::error::Error>> {
     // Execute ip addr show command
-    let output = Command::new("ip").args(["addr", "show"]).output();
+    let addr_output = Command::new("ip").args(["addr", "show"]).output();
+
+    // Execute ip link show command to get MAC addresses
+    let link_output = Command::new("ip").args(["link", "show"]).output();
 
     let mut interfaces = Vec::new();
 
-    // Process output if available
-    if let Ok(output) = output {
-        if output.status.success() {
-            let output_str = String::from_utf8_lossy(&output.stdout);
+    // Parse MAC addresses from ip link output
+    let mut mac_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    if let Ok(link_output) = link_output {
+        if link_output.status.success() {
+            let link_str = String::from_utf8_lossy(&link_output.stdout);
+            parse_mac_addresses(&link_str, &mut mac_map);
+        }
+    }
+
+    // Process addr output if available
+    if let Ok(addr_output) = addr_output {
+        if addr_output.status.success() {
+            let output_str = String::from_utf8_lossy(&addr_output.stdout);
 
             // Parse the output to extract interface information
             let lines: Vec<&str> = output_str.lines().collect();
@@ -35,9 +47,11 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                     }
 
                     // Create new interface
+                    let mac_address = mac_map.get(&interface_name).cloned();
                     current_interface = Some(NetworkInterface {
                         name: interface_name.clone(),
                         ip_addresses: Vec::new(),
+                        mac_address,
                         is_up: !trimmed.contains("DOWN"),
                         is_loopback: interface_name.starts_with("lo"),
                         environment: NetworkEnvironment::Wsl,
@@ -67,6 +81,7 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                 "172.24.160.10".to_string(),
                 "fe80::abcd:ef01:2345:6789".to_string(),
             ],
+            mac_address: Some("00:15:5d:ab:cd:ef".to_string()),
             is_up: true,
             is_loopback: false,
             environment: NetworkEnvironment::Wsl,
@@ -75,6 +90,7 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
         interfaces.push(NetworkInterface {
             name: "lo".to_string(),
             ip_addresses: vec!["127.0.0.1".to_string(), "::1".to_string()],
+            mac_address: None,
             is_up: true,
             is_loopback: true,
             environment: NetworkEnvironment::Wsl,
@@ -83,6 +99,7 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
         interfaces.push(NetworkInterface {
             name: "docker0".to_string(),
             ip_addresses: vec!["172.17.0.1".to_string()],
+            mac_address: Some("02:42:12:34:56:78".to_string()),
             is_up: true,
             is_loopback: false,
             environment: NetworkEnvironment::Wsl,
@@ -191,5 +208,29 @@ fn extract_port(address_port: &str) -> &str {
         &address_port[colon_pos + 1..]
     } else {
         address_port
+    }
+}
+
+/// Parse MAC addresses from ip link show output
+fn parse_mac_addresses(link_output: &str, mac_map: &mut std::collections::HashMap<String, String>) {
+    let lines: Vec<&str> = link_output.lines().collect();
+    let mut current_interface: Option<String> = None;
+
+    for line in lines {
+        let trimmed = line.trim();
+
+        // Look for interface definition lines (e.g., "2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP>")
+        if let Some(interface_name) = parse_interface_line(trimmed) {
+            current_interface = Some(interface_name);
+        }
+        // Look for MAC address lines (e.g., "link/ether 00:15:5d:12:34:56 brd ff:ff:ff:ff:ff:ff")
+        else if trimmed.starts_with("link/ether ") {
+            let parts: Vec<&str> = trimmed.split_whitespace().collect();
+            if parts.len() >= 2 {
+                if let Some(ref interface_name) = current_interface {
+                    mac_map.insert(interface_name.clone(), parts[1].to_string());
+                }
+            }
+        }
     }
 }

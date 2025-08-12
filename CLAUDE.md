@@ -41,6 +41,16 @@ cargo check
 cargo clippy
 ```
 
+### Testing and Development
+```bash
+# Build and run Windows version (recommended for testing)
+./build-and-run-windows.sh
+
+# Or build and run separately
+./build-windows.sh
+./run-windows.sh
+```
+
 ### Cross-Compilation for Windows
 The project includes scripts for cross-compiling to Windows and running the native Windows version from WSL:
 

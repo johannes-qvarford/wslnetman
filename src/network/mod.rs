@@ -15,6 +15,7 @@ pub enum NetworkEnvironment {
 pub struct NetworkInterface {
     pub name: String,
     pub ip_addresses: Vec<String>,
+    pub mac_address: Option<String>,
     pub is_up: bool,
     pub is_loopback: bool,
     pub environment: NetworkEnvironment, // New field to identify source
