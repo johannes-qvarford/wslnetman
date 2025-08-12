@@ -32,6 +32,9 @@ futures = "0.3"
 # Command line parsing (if needed)
 clap = { version = "4.0", features = ["derive"] }
 
+# Clipboard functionality
+arboard = "3.2"
+
 # Cross-platform utilities
 [target.'cfg(windows)'.dependencies]
 # Windows-specific dependencies

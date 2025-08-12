@@ -11,7 +11,8 @@
       "Bash(chmod:*)",
       "Bash(ls:*)",
       "Bash(git commit:*)",
-      "Bash(./build-and-run-windows.sh:*)"
+      "Bash(./build-and-run-windows.sh:*)",
+      "Bash(cargo:*)"
     ],
     "deny": []
   }

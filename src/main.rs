@@ -1,4 +1,5 @@
 slint::include_modules!();
+use arboard::Clipboard;
 use slint::Model;
 
 // Import packet sending modules
@@ -276,6 +277,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }).unwrap();
+    });
+
+    // Handle copy to clipboard
+    app.on_copy_to_clipboard(move |text| {
+        let text_str = text.to_string();
+        match Clipboard::new() {
+            Ok(mut clipboard) => {
+                if let Err(e) = clipboard.set_text(&text_str) {
+                    eprintln!("Failed to copy to clipboard: {e}");
+                } else {
+                    println!("Copied to clipboard: {text_str}");
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to access clipboard: {e}");
+            }
+        }
     });
 
     app.run()?;
