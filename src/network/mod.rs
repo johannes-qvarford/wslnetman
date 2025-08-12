@@ -73,6 +73,41 @@ pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
     wsl::get_active_ports()
 }
 
+/// Filter ports associated with a specific network interface
+///
+/// This function filters ports based on matching IP addresses between the interface and port bindings.
+pub fn filter_ports_for_interface(
+    interface: &NetworkInterface,
+    all_ports: &[PortInfo],
+) -> Vec<PortInfo> {
+    let mut filtered_ports = Vec::new();
+
+    // Collect all IP addresses from the interface
+    let mut interface_ips = interface.ipv4_addresses.clone();
+    interface_ips.extend(interface.ipv6_addresses.clone());
+
+    for port in all_ports {
+        // Extract the IP address from the network field (format: "ip:port")
+        let port_ip = if let Some(colon_pos) = port.network.rfind(':') {
+            port.network[..colon_pos].to_string()
+        } else {
+            port.network.clone()
+        };
+
+        // Check if the port's network address matches any of the interface's IPs
+        // Also include ports bound to 0.0.0.0 or :: (all interfaces)
+        if interface_ips.contains(&port_ip)
+            || port_ip == "0.0.0.0"
+            || port_ip == "::"
+            || port_ip == "*"
+        {
+            filtered_ports.push(port.clone());
+        }
+    }
+
+    filtered_ports
+}
+
 /// Get Docker networks
 ///
 /// This function returns Docker network information.

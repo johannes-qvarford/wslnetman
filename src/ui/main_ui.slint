@@ -38,14 +38,18 @@ export component MainWindow inherits Window {
     in property <string> ping-response: "";
     in property <string> http-response: "";
     in property <string> raw-output: "";
+    in property <NetworkInterface> selected-network-detail;
+    in property <[PortInfo]> filtered-ports: [];
     
     out property <int> selected-network-index: -1;
     out property <string> selected-network-type: "";
     out property <string> packet-type: "ping";
     out property <string> destination: "";
     out property <string> selected-interface: "";
+    in-out property <bool> show-network-detail: false;
     
     callback network-selected(int);
+    callback network-row-clicked(int);
     callback send-packet();
     callback refresh-data();
     
@@ -90,59 +94,115 @@ export component MainWindow inherits Window {
                                 }
                                 
                                 // Network interfaces data
-                                for network in network-interfaces : VerticalBox {
-                                    HorizontalBox {
-                                        Text { 
-                                            text: network.environment; 
-                                            width: 120px; 
-                                            color: network.environment == "Windows" ? #0066cc : (network.environment == "WSL" ? #009900 : #666666);
-                                            font-weight: 500;
+                                for network[index] in network-interfaces : VerticalBox {
+                                    touch-area := TouchArea {
+                                        clicked => {
+                                            network-row-clicked(index);
                                         }
-                                        Text { 
-                                            text: network.name; 
-                                            width: 140px; 
-                                            font-weight: network.is_loopback ? 400 : 500;
-                                        }
-                                        Text { 
-                                            text: network.mac_address == "" ? "N/A" : network.mac_address; 
-                                            width: 140px;
-                                            font-family: "monospace";
-                                        }
-                                        Text { 
-                                            text: {
-                                                // Join IPv4 addresses with commas
-                                                network.ipv4_addresses.length > 0 ? (
-                                                    network.ipv4_addresses.length > 1 ? 
-                                                        network.ipv4_addresses[0] + ", " + (network.ipv4_addresses.length > 2 ? network.ipv4_addresses[1] + ", ..." : network.ipv4_addresses[1])
-                                                        : network.ipv4_addresses[0]
-                                                ) : "N/A"
-                                            };
-                                            width: 160px;
-                                            wrap: TextWrap.word-wrap;
-                                            font-family: "monospace";
-                                            font-size: 12px;
-                                            font-weight: 600;
-                                        }
-                                        Text { 
-                                            text: {
-                                                // Join IPv6 addresses with commas
-                                                network.ipv6_addresses.length > 0 ? (
-                                                    network.ipv6_addresses.length > 1 ? 
-                                                        network.ipv6_addresses[0] + ", " + (network.ipv6_addresses.length > 2 ? network.ipv6_addresses[1] + ", ..." : network.ipv6_addresses[1])
-                                                        : network.ipv6_addresses[0]
-                                                ) : "N/A"
-                                            };
-                                            width: 200px;
-                                            wrap: TextWrap.word-wrap;
-                                            font-family: "monospace";
-                                            font-size: 12px;
-                                            font-weight: 600;
-                                        }
-                                        Text { 
-                                            text: network.is_up ? "UP" : "DOWN"; 
-                                            width: 80px;
-                                            color: network.is_up ? #009900 : #cc0000;
-                                            font-weight: 600;
+                                        
+                                        Rectangle {
+                                            background: parent.has-hover ? #2d5aa0 : transparent;
+                                            border-radius: 4px;
+                                            
+                                            HorizontalBox {
+                                                padding: 8px;
+                                                Text { 
+                                                    text: network.environment; 
+                                                    width: 120px; 
+                                                    color: touch-area.has-hover ? white : (network.environment == "Windows" ? #0066cc : (network.environment == "WSL" ? #009900 : #666666));
+                                                    font-weight: 500;
+                                                }
+                                                if touch-area.has-hover : Text { 
+                                                    text: network.name; 
+                                                    width: 140px; 
+                                                    font-weight: network.is_loopback ? 400 : 500;
+                                                    color: white;
+                                                }
+                                                if !touch-area.has-hover : Text { 
+                                                    text: network.name; 
+                                                    width: 140px; 
+                                                    font-weight: network.is_loopback ? 400 : 500;
+                                                }
+                                                if touch-area.has-hover : Text { 
+                                                    text: network.mac_address == "" ? "N/A" : network.mac_address; 
+                                                    width: 140px;
+                                                    font-family: "monospace";
+                                                    color: white;
+                                                }
+                                                if !touch-area.has-hover : Text { 
+                                                    text: network.mac_address == "" ? "N/A" : network.mac_address; 
+                                                    width: 140px;
+                                                    font-family: "monospace";
+                                                }
+                                                if touch-area.has-hover : Text { 
+                                                    text: {
+                                                        // Join IPv4 addresses with commas
+                                                        network.ipv4_addresses.length > 0 ? (
+                                                            network.ipv4_addresses.length > 1 ? 
+                                                                network.ipv4_addresses[0] + ", " + (network.ipv4_addresses.length > 2 ? network.ipv4_addresses[1] + ", ..." : network.ipv4_addresses[1])
+                                                                : network.ipv4_addresses[0]
+                                                        ) : "N/A"
+                                                    };
+                                                    width: 160px;
+                                                    wrap: TextWrap.word-wrap;
+                                                    font-family: "monospace";
+                                                    font-size: 12px;
+                                                    font-weight: 600;
+                                                    color: white;
+                                                }
+                                                if !touch-area.has-hover : Text { 
+                                                    text: {
+                                                        // Join IPv4 addresses with commas
+                                                        network.ipv4_addresses.length > 0 ? (
+                                                            network.ipv4_addresses.length > 1 ? 
+                                                                network.ipv4_addresses[0] + ", " + (network.ipv4_addresses.length > 2 ? network.ipv4_addresses[1] + ", ..." : network.ipv4_addresses[1])
+                                                                : network.ipv4_addresses[0]
+                                                        ) : "N/A"
+                                                    };
+                                                    width: 160px;
+                                                    wrap: TextWrap.word-wrap;
+                                                    font-family: "monospace";
+                                                    font-size: 12px;
+                                                    font-weight: 600;
+                                                }
+                                                if touch-area.has-hover : Text { 
+                                                    text: {
+                                                        // Join IPv6 addresses with commas
+                                                        network.ipv6_addresses.length > 0 ? (
+                                                            network.ipv6_addresses.length > 1 ? 
+                                                                network.ipv6_addresses[0] + ", " + (network.ipv6_addresses.length > 2 ? network.ipv6_addresses[1] + ", ..." : network.ipv6_addresses[1])
+                                                                : network.ipv6_addresses[0]
+                                                        ) : "N/A"
+                                                    };
+                                                    width: 200px;
+                                                    wrap: TextWrap.word-wrap;
+                                                    font-family: "monospace";
+                                                    font-size: 12px;
+                                                    font-weight: 600;
+                                                    color: white;
+                                                }
+                                                if !touch-area.has-hover : Text { 
+                                                    text: {
+                                                        // Join IPv6 addresses with commas
+                                                        network.ipv6_addresses.length > 0 ? (
+                                                            network.ipv6_addresses.length > 1 ? 
+                                                                network.ipv6_addresses[0] + ", " + (network.ipv6_addresses.length > 2 ? network.ipv6_addresses[1] + ", ..." : network.ipv6_addresses[1])
+                                                                : network.ipv6_addresses[0]
+                                                        ) : "N/A"
+                                                    };
+                                                    width: 200px;
+                                                    wrap: TextWrap.word-wrap;
+                                                    font-family: "monospace";
+                                                    font-size: 12px;
+                                                    font-weight: 600;
+                                                }
+                                                Text { 
+                                                    text: network.is_up ? "UP" : "DOWN"; 
+                                                    width: 80px;
+                                                    color: touch-area.has-hover ? white : (network.is_up ? #009900 : #cc0000);
+                                                    font-weight: 600;
+                                                }
+                                            }
                                         }
                                     }
                                     // Grid line separator
@@ -268,6 +328,229 @@ export component MainWindow inherits Window {
                                     wrap: TextWrap.word-wrap;
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Network Detail Popup
+    network-detail-popup := PopupWindow {
+        width: 600px;
+        height: 500px;
+        
+        VerticalBox {
+            padding: 16px;
+            spacing: 12px;
+            
+            HorizontalBox {
+                Text {
+                    text: "Network Interface Details";
+                    font-size: 18px;
+                    font-weight: 700;
+                    horizontal-alignment: left;
+                }
+                Button {
+                    text: "×";
+                    width: 30px;
+                    height: 30px;
+                    clicked => {
+                        network-detail-popup.close();
+                    }
+                }
+            }
+            
+            Rectangle {
+                height: 1px;
+                background: #cccccc;
+            }
+            
+            ScrollView {
+                VerticalBox {
+                    spacing: 12px;
+                    
+                    // Network Information Section
+                    VerticalBox {
+                        spacing: 8px;
+                        
+                        Text {
+                            text: "Interface Information";
+                            font-size: 16px;
+                            font-weight: 600;
+                        }
+                        
+                        HorizontalBox {
+                            Text { text: "Name:"; width: 120px; font-weight: 500; }
+                            Text { 
+                                text: selected-network-detail.name;
+                                font-family: "monospace";
+                            }
+                        }
+                        
+                        HorizontalBox {
+                            Text { text: "Environment:"; width: 120px; font-weight: 500; }
+                            Text { 
+                                text: selected-network-detail.environment;
+                                color: selected-network-detail.environment == "Windows" ? #0066cc : (selected-network-detail.environment == "WSL" ? #009900 : #666666);
+                                font-weight: 500;
+                            }
+                        }
+                        
+                        HorizontalBox {
+                            Text { text: "MAC Address:"; width: 120px; font-weight: 500; }
+                            Text { 
+                                text: selected-network-detail.mac_address == "" ? "N/A" : selected-network-detail.mac_address;
+                                font-family: "monospace";
+                            }
+                        }
+                        
+                        HorizontalBox {
+                            Text { text: "Status:"; width: 120px; font-weight: 500; }
+                            Text { 
+                                text: selected-network-detail.is_up ? "UP" : "DOWN";
+                                color: selected-network-detail.is_up ? #009900 : #cc0000;
+                                font-weight: 600;
+                            }
+                        }
+                        
+                        HorizontalBox {
+                            Text { text: "Type:"; width: 120px; font-weight: 500; }
+                            Text { 
+                                text: selected-network-detail.is_loopback ? "Loopback" : "Physical/Virtual";
+                                font-weight: 500;
+                            }
+                        }
+                    }
+                    
+                    Rectangle {
+                        height: 1px;
+                        background: #e0e0e0;
+                    }
+                    
+                    // IP Addresses Section
+                    VerticalBox {
+                        spacing: 8px;
+                        
+                        Text {
+                            text: "IP Addresses";
+                            font-size: 16px;
+                            font-weight: 600;
+                        }
+                        
+                        VerticalBox {
+                            spacing: 4px;
+                            
+                            Text {
+                                text: "IPv4 Addresses:";
+                                font-weight: 500;
+                            }
+                            
+                            for ipv4 in selected-network-detail.ipv4_addresses : Text {
+                                text: "  • " + ipv4;
+                                font-family: "monospace";
+                                font-size: 12px;
+                                color: #333333;
+                            }
+                            
+                            if selected-network-detail.ipv4_addresses.length == 0 : Text {
+                                text: "  No IPv4 addresses";
+                                color: #888888;
+                            }
+                        }
+                        
+                        VerticalBox {
+                            spacing: 4px;
+                            
+                            Text {
+                                text: "IPv6 Addresses:";
+                                font-weight: 500;
+                            }
+                            
+                            for ipv6 in selected-network-detail.ipv6_addresses : Text {
+                                text: "  • " + ipv6;
+                                font-family: "monospace";
+                                font-size: 12px;
+                                color: #333333;
+                            }
+                            
+                            if selected-network-detail.ipv6_addresses.length == 0 : Text {
+                                text: "  No IPv6 addresses";
+                                color: #888888;
+                            }
+                        }
+                    }
+                    
+                    Rectangle {
+                        height: 1px;
+                        background: #e0e0e0;
+                    }
+                    
+                    // Associated Ports Section
+                    VerticalBox {
+                        spacing: 8px;
+                        
+                        Text {
+                            text: "Associated Open Ports";
+                            font-size: 16px;
+                            font-weight: 600;
+                        }
+                        
+                        if filtered-ports.length > 0 : VerticalBox {
+                            spacing: 4px;
+                            
+                            // Port headers
+                            HorizontalBox {
+                                Text { text: "Protocol"; width: 80px; font-weight: 600; font-size: 12px; }
+                                Text { text: "Port"; width: 60px; font-weight: 600; font-size: 12px; }
+                                Text { text: "State"; width: 80px; font-weight: 600; font-size: 12px; }
+                                Text { text: "Process"; width: 120px; font-weight: 600; font-size: 12px; }
+                                Text { text: "Address"; width: 150px; font-weight: 600; font-size: 12px; }
+                            }
+                            
+                            Rectangle {
+                                height: 1px;
+                                background: #e0e0e0;
+                            }
+                            
+                            for port in filtered-ports : HorizontalBox {
+                                Text { 
+                                    text: port.protocol; 
+                                    width: 80px; 
+                                    font-family: "monospace";
+                                    font-size: 11px;
+                                }
+                                Text { 
+                                    text: port.port; 
+                                    width: 60px; 
+                                    font-family: "monospace";
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                }
+                                Text { 
+                                    text: port.direction; 
+                                    width: 80px; 
+                                    font-family: "monospace";
+                                    font-size: 11px;
+                                    color: port.direction == "LISTEN" ? #009900 : #666666;
+                                }
+                                Text { 
+                                    text: port.process_name; 
+                                    width: 120px; 
+                                    font-size: 11px;
+                                }
+                                Text { 
+                                    text: port.network; 
+                                    width: 150px; 
+                                    font-family: "monospace";
+                                    font-size: 11px;
+                                }
+                            }
+                        }
+                        
+                        if filtered-ports.length == 0 : Text {
+                            text: "No open ports found for this interface";
+                            color: #888888;
                         }
                     }
                 }
