@@ -196,7 +196,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             app.set_filtered_ports(slint_filtered_ports.as_slice().into());
 
             // Show the detail popup
-            app.set_show_network_detail(true);
+            app.invoke_show_network_popup();
         }
     });
 

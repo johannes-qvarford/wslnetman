@@ -52,6 +52,7 @@ export component MainWindow inherits Window {
     callback network-row-clicked(int);
     callback send-packet();
     callback refresh-data();
+    callback show-network-popup();
     
     VerticalBox {
         HorizontalBox {
@@ -338,9 +339,17 @@ export component MainWindow inherits Window {
     // Network Detail Popup
     network-detail-popup := PopupWindow {
         width: 600px;
-        height: 500px;
+        height: root.height - 40px;
         
-        VerticalBox {
+        Rectangle {
+            background: #2d2d2d;
+            border-width: 1px;
+            border-color: #555555;
+            border-radius: 8px;
+            drop-shadow-blur: 10px;
+            drop-shadow-color: #00000080;
+            
+            VerticalBox {
             padding: 16px;
             spacing: 12px;
             
@@ -450,7 +459,7 @@ export component MainWindow inherits Window {
                                 text: "  • " + ipv4;
                                 font-family: "monospace";
                                 font-size: 12px;
-                                color: #333333;
+                                color: #cccccc;
                             }
                             
                             if selected-network-detail.ipv4_addresses.length == 0 : Text {
@@ -471,7 +480,7 @@ export component MainWindow inherits Window {
                                 text: "  • " + ipv6;
                                 font-family: "monospace";
                                 font-size: 12px;
-                                color: #333333;
+                                color: #cccccc;
                             }
                             
                             if selected-network-detail.ipv6_addresses.length == 0 : Text {
@@ -556,5 +565,11 @@ export component MainWindow inherits Window {
                 }
             }
         }
+    }
+}
+    
+    // Connect callback to show popup
+    show-network-popup => {
+        network-detail-popup.show();
     }
 }
