@@ -21,8 +21,15 @@ fn refresh_all_data(app_weak: &slint::Weak<MainWindow>) {
                 .into_iter()
                 .map(|interface| slint_generatedMainWindow::NetworkInterface {
                     name: interface.name.into(),
-                    ip_addresses: interface
-                        .ip_addresses
+                    ipv4_addresses: interface
+                        .ipv4_addresses
+                        .iter()
+                        .map(|ip| ip.clone().into())
+                        .collect::<Vec<_>>()
+                        .as_slice()
+                        .into(),
+                    ipv6_addresses: interface
+                        .ipv6_addresses
                         .iter()
                         .map(|ip| ip.clone().into())
                         .collect::<Vec<_>>()

@@ -92,14 +92,22 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                 });
 
             if let Ok(ip_addresses) = ip_result {
-                // Group IP addresses by interface
-                let mut interface_map: std::collections::HashMap<String, Vec<String>> =
+                // Group IP addresses by interface and type
+                let mut interface_ipv4_map: std::collections::HashMap<String, Vec<String>> =
+                    std::collections::HashMap::new();
+                let mut interface_ipv6_map: std::collections::HashMap<String, Vec<String>> =
                     std::collections::HashMap::new();
 
                 for ip_info in ip_addresses {
-                    // Only include IPv4 and IPv6 addresses (2 = IPv4, 23 = IPv6)
-                    if ip_info.address_family == 2 || ip_info.address_family == 23 {
-                        interface_map
+                    if ip_info.address_family == 2 {
+                        // IPv4
+                        interface_ipv4_map
+                            .entry(ip_info.interface_alias.clone())
+                            .or_default()
+                            .push(ip_info.ip_address);
+                    } else if ip_info.address_family == 23 {
+                        // IPv6
+                        interface_ipv6_map
                             .entry(ip_info.interface_alias.clone())
                             .or_default()
                             .push(ip_info.ip_address);
@@ -107,13 +115,25 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                 }
 
                 // Create NetworkInterface objects
-                for (name, ip_addresses) in interface_map {
+                let mut all_interfaces: std::collections::HashSet<String> =
+                    std::collections::HashSet::new();
+                for name in interface_ipv4_map.keys() {
+                    all_interfaces.insert(name.clone());
+                }
+                for name in interface_ipv6_map.keys() {
+                    all_interfaces.insert(name.clone());
+                }
+
+                for name in all_interfaces {
                     let mac_address = adapter_map.get(&name).cloned();
                     let is_up = adapter_status_map.get(&name).copied().unwrap_or(true);
+                    let ipv4_addresses = interface_ipv4_map.get(&name).cloned().unwrap_or_default();
+                    let ipv6_addresses = interface_ipv6_map.get(&name).cloned().unwrap_or_default();
 
                     interfaces.push(NetworkInterface {
                         name: name.clone(),
-                        ip_addresses,
+                        ipv4_addresses,
+                        ipv6_addresses,
                         mac_address,
                         is_up,
                         is_loopback: name.contains("Loopback") || name.contains("lo"),
@@ -128,10 +148,8 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
     if interfaces.is_empty() {
         interfaces.push(NetworkInterface {
             name: "Windows Ethernet".to_string(),
-            ip_addresses: vec![
-                "192.168.1.100".to_string(),
-                "fe80::1234:5678:9abc:def0".to_string(),
-            ],
+            ipv4_addresses: vec!["192.168.1.100".to_string()],
+            ipv6_addresses: vec!["fe80::1234:5678:9abc:def0".to_string()],
             mac_address: Some("00:15:5d:12:34:56".to_string()),
             is_up: true,
             is_loopback: false,
@@ -140,10 +158,8 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
 
         interfaces.push(NetworkInterface {
             name: "Windows Wi-Fi".to_string(),
-            ip_addresses: vec![
-                "192.168.0.105".to_string(),
-                "fe80::abcd:ef01:2345:6789".to_string(),
-            ],
+            ipv4_addresses: vec!["192.168.0.105".to_string()],
+            ipv6_addresses: vec!["fe80::abcd:ef01:2345:6789".to_string()],
             mac_address: Some("aa:bb:cc:dd:ee:ff".to_string()),
             is_up: true,
             is_loopback: false,
@@ -152,7 +168,8 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
 
         interfaces.push(NetworkInterface {
             name: "Windows Loopback".to_string(),
-            ip_addresses: vec!["127.0.0.1".to_string(), "::1".to_string()],
+            ipv4_addresses: vec!["127.0.0.1".to_string()],
+            ipv6_addresses: vec!["::1".to_string()],
             mac_address: None,
             is_up: true,
             is_loopback: true,

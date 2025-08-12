@@ -50,7 +50,8 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                     let mac_address = mac_map.get(&interface_name).cloned();
                     current_interface = Some(NetworkInterface {
                         name: interface_name.clone(),
-                        ip_addresses: Vec::new(),
+                        ipv4_addresses: Vec::new(),
+                        ipv6_addresses: Vec::new(),
                         mac_address,
                         is_up: !trimmed.contains("DOWN"),
                         is_loopback: interface_name.starts_with("lo"),
@@ -58,10 +59,14 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                     });
                 }
                 // Look for IP address lines (e.g., "inet 172.24.160.10/20 brd 172.24.175.255 scope global eth0")
-                else if let Some(ip_address) = parse_ip_line(trimmed) {
+                else if let Some((ip_address, is_ipv6)) = parse_ip_line_with_type(trimmed) {
                     // Add IP address to current interface
                     if let Some(ref mut interface) = current_interface {
-                        interface.ip_addresses.push(ip_address);
+                        if is_ipv6 {
+                            interface.ipv6_addresses.push(ip_address);
+                        } else {
+                            interface.ipv4_addresses.push(ip_address);
+                        }
                     }
                 }
             }
@@ -77,10 +82,8 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
     if interfaces.is_empty() {
         interfaces.push(NetworkInterface {
             name: "eth0".to_string(),
-            ip_addresses: vec![
-                "172.24.160.10".to_string(),
-                "fe80::abcd:ef01:2345:6789".to_string(),
-            ],
+            ipv4_addresses: vec!["172.24.160.10".to_string()],
+            ipv6_addresses: vec!["fe80::abcd:ef01:2345:6789".to_string()],
             mac_address: Some("00:15:5d:ab:cd:ef".to_string()),
             is_up: true,
             is_loopback: false,
@@ -89,7 +92,8 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
 
         interfaces.push(NetworkInterface {
             name: "lo".to_string(),
-            ip_addresses: vec!["127.0.0.1".to_string(), "::1".to_string()],
+            ipv4_addresses: vec!["127.0.0.1".to_string()],
+            ipv6_addresses: vec!["::1".to_string()],
             mac_address: None,
             is_up: true,
             is_loopback: true,
@@ -98,7 +102,8 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
 
         interfaces.push(NetworkInterface {
             name: "docker0".to_string(),
-            ip_addresses: vec!["172.17.0.1".to_string()],
+            ipv4_addresses: vec!["172.17.0.1".to_string()],
+            ipv6_addresses: vec![],
             mac_address: Some("02:42:12:34:56:78".to_string()),
             is_up: true,
             is_loopback: false,
@@ -121,17 +126,19 @@ fn parse_interface_line(line: &str) -> Option<String> {
     None
 }
 
-/// Parse an IP address line and return the IP address
-fn parse_ip_line(line: &str) -> Option<String> {
+/// Parse an IP address line and return the IP address with type information
+fn parse_ip_line_with_type(line: &str) -> Option<(String, bool)> {
     // Example line: "inet 172.24.160.10/20 brd 172.24.175.255 scope global eth0"
     let parts: Vec<&str> = line.split_whitespace().collect();
     if parts.len() >= 2 && (parts[0] == "inet" || parts[0] == "inet6") {
         // Extract IP address without the subnet mask
-        if let Some(slash_pos) = parts[1].find("/") {
-            Some(parts[1][..slash_pos].to_string())
+        let ip_address = if let Some(slash_pos) = parts[1].find("/") {
+            parts[1][..slash_pos].to_string()
         } else {
-            Some(parts[1].to_string())
-        }
+            parts[1].to_string()
+        };
+        let is_ipv6 = parts[0] == "inet6";
+        Some((ip_address, is_ipv6))
     } else {
         None
     }

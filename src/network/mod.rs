@@ -14,7 +14,8 @@ pub enum NetworkEnvironment {
 #[derive(Debug, Clone)]
 pub struct NetworkInterface {
     pub name: String,
-    pub ip_addresses: Vec<String>,
+    pub ipv4_addresses: Vec<String>,
+    pub ipv6_addresses: Vec<String>,
     pub mac_address: Option<String>,
     pub is_up: bool,
     pub is_loopback: bool,

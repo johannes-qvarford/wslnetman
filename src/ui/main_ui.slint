@@ -2,7 +2,8 @@ import { VerticalBox, HorizontalBox, TabWidget, ScrollView, Button, ComboBox, Li
 
 export struct NetworkInterface {
     name: string,
-    ip_addresses: [string],
+    ipv4_addresses: [string],
+    ipv6_addresses: [string],
     mac_address: string,
     is_up: bool,
     is_loopback: bool,
@@ -75,9 +76,10 @@ export component MainWindow inherits Window {
                                 // Header row
                                 HorizontalBox {
                                     Text { text: "Environment"; width: 120px; font-weight: 600; }
-                                    Text { text: "Interface"; width: 150px; font-weight: 600; }
+                                    Text { text: "Interface"; width: 140px; font-weight: 600; }
                                     Text { text: "MAC Address"; width: 140px; font-weight: 600; }
-                                    Text { text: "IP Addresses"; width: 250px; font-weight: 600; }
+                                    Text { text: "IPv4 Addresses"; width: 160px; font-weight: 600; }
+                                    Text { text: "IPv6 Addresses"; width: 200px; font-weight: 600; }
                                     Text { text: "Status"; width: 80px; font-weight: 600; }
                                 }
                                 
@@ -88,41 +90,65 @@ export component MainWindow inherits Window {
                                 }
                                 
                                 // Network interfaces data
-                                for network in network-interfaces : HorizontalBox {
-                                    Text { 
-                                        text: network.environment; 
-                                        width: 120px; 
-                                        color: network.environment == "Windows" ? #0066cc : (network.environment == "WSL" ? #009900 : #666666);
-                                        font-weight: 500;
+                                for network in network-interfaces : VerticalBox {
+                                    HorizontalBox {
+                                        Text { 
+                                            text: network.environment; 
+                                            width: 120px; 
+                                            color: network.environment == "Windows" ? #0066cc : (network.environment == "WSL" ? #009900 : #666666);
+                                            font-weight: 500;
+                                        }
+                                        Text { 
+                                            text: network.name; 
+                                            width: 140px; 
+                                            font-weight: network.is_loopback ? 400 : 500;
+                                        }
+                                        Text { 
+                                            text: network.mac_address == "" ? "N/A" : network.mac_address; 
+                                            width: 140px;
+                                            font-family: "monospace";
+                                        }
+                                        Text { 
+                                            text: {
+                                                // Join IPv4 addresses with commas
+                                                network.ipv4_addresses.length > 0 ? (
+                                                    network.ipv4_addresses.length > 1 ? 
+                                                        network.ipv4_addresses[0] + ", " + (network.ipv4_addresses.length > 2 ? network.ipv4_addresses[1] + ", ..." : network.ipv4_addresses[1])
+                                                        : network.ipv4_addresses[0]
+                                                ) : "N/A"
+                                            };
+                                            width: 160px;
+                                            wrap: TextWrap.word-wrap;
+                                            font-family: "monospace";
+                                            font-size: 12px;
+                                            font-weight: 600;
+                                        }
+                                        Text { 
+                                            text: {
+                                                // Join IPv6 addresses with commas
+                                                network.ipv6_addresses.length > 0 ? (
+                                                    network.ipv6_addresses.length > 1 ? 
+                                                        network.ipv6_addresses[0] + ", " + (network.ipv6_addresses.length > 2 ? network.ipv6_addresses[1] + ", ..." : network.ipv6_addresses[1])
+                                                        : network.ipv6_addresses[0]
+                                                ) : "N/A"
+                                            };
+                                            width: 200px;
+                                            wrap: TextWrap.word-wrap;
+                                            font-family: "monospace";
+                                            font-size: 12px;
+                                            font-weight: 600;
+                                        }
+                                        Text { 
+                                            text: network.is_up ? "UP" : "DOWN"; 
+                                            width: 80px;
+                                            color: network.is_up ? #009900 : #cc0000;
+                                            font-weight: 600;
+                                        }
                                     }
-                                    Text { 
-                                        text: network.name; 
-                                        width: 150px; 
-                                        font-weight: network.is_loopback ? 400 : 500;
-                                    }
-                                    Text { 
-                                        text: network.mac_address == "" ? "N/A" : network.mac_address; 
-                                        width: 140px;
-                                        font-family: "monospace";
-                                    }
-                                    Text { 
-                                        text: {
-                                            // Join IP addresses with commas - simplified approach
-                                            network.ip_addresses.length > 0 ? (
-                                                network.ip_addresses.length > 1 ? 
-                                                    network.ip_addresses[0] + ", " + (network.ip_addresses.length > 2 ? network.ip_addresses[1] + ", ..." : network.ip_addresses[1])
-                                                    : network.ip_addresses[0]
-                                            ) : "N/A"
-                                        };
-                                        width: 250px;
-                                        wrap: TextWrap.word-wrap;
-                                        font-family: "monospace";
-                                    }
-                                    Text { 
-                                        text: network.is_up ? "UP" : "DOWN"; 
-                                        width: 80px;
-                                        color: network.is_up ? #009900 : #cc0000;
-                                        font-weight: 600;
+                                    // Grid line separator
+                                    Rectangle {
+                                        height: 1px;
+                                        background: #e0e0e0;
                                     }
                                 }
                             }
