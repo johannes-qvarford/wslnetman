@@ -5,6 +5,8 @@ import { TableHeader, TableSeparator, TableRowSeparator, TableRow, TableCell } f
 export component DockerTab inherits VerticalBox {
     in property <[DockerNetwork]> docker-networks: [];
     
+    callback docker-network-clicked(int);
+    
     Text {
         text: "Docker Networks";
         font-size: 18px;
@@ -31,7 +33,7 @@ export component DockerTab inherits VerticalBox {
             for docker[index] in docker-networks: VerticalBox {
                 table-row := TableRow {
                     row-clicked => {
-                        // Future: add docker network detail callback
+                        docker-network-clicked(index);
                     }
                     
                     HorizontalBox {

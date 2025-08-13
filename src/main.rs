@@ -8,6 +8,7 @@ use packet::{send_http_request, send_ping};
 
 // Import network modules
 mod network;
+use network::docker::get_containers_for_network;
 use network::{
     filter_ports_for_interface, get_active_ports, get_all_docker_networks,
     get_all_network_interfaces,
@@ -292,6 +293,52 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             Err(e) => {
                 eprintln!("Failed to access clipboard: {e}");
+            }
+        }
+    });
+
+    // Handle docker network selection
+    let app_weak = app.as_weak();
+    app.on_docker_network_selected(move |index| {
+        let app = app_weak.unwrap();
+        println!("Docker network selected: {index}");
+
+        // Get current docker networks
+        let docker_networks = app.get_docker_networks();
+
+        if let Some(selected_network) = docker_networks.iter().nth(index as usize) {
+            let network_name = selected_network.name.to_string();
+
+            // Fetch containers for this network synchronously
+            match get_containers_for_network(&network_name) {
+                Ok(containers) => {
+                    // Convert to Slint-compatible format
+                    let slint_containers: Vec<slint_generatedMainWindow::DockerContainer> =
+                        containers
+                            .into_iter()
+                            .map(|container| slint_generatedMainWindow::DockerContainer {
+                                name: container.name.into(),
+                                image: container.image.into(),
+                                status: container.status.into(),
+                                ports: container.ports.into(),
+                                id: container.id.into(),
+                            })
+                            .collect();
+
+                    // Set the selected docker network details and containers
+                    app.set_selected_docker_network(selected_network.clone());
+                    app.set_docker_containers(slint_containers.as_slice().into());
+
+                    // Show the docker network detail modal
+                    app.set_show_docker_network_detail(true);
+                }
+                Err(e) => {
+                    eprintln!("Error getting containers for network {network_name}: {e}");
+                    // Still show the modal but with empty containers
+                    app.set_selected_docker_network(selected_network.clone());
+                    app.set_docker_containers(slint::ModelRc::new(slint::VecModel::default()));
+                    app.set_show_docker_network_detail(true);
+                }
             }
         }
     });

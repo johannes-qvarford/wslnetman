@@ -1,8 +1,9 @@
 import { VerticalBox, HorizontalBox, TabWidget, ScrollView, Button, ComboBox, LineEdit } from "std-widgets.slint";
 import { NetworkDetailModal } from "components/network_detail_modal.slint";
+import { DockerNetworkDetailModal } from "components/docker_network_detail_modal.slint";
 import { NetworkTab } from "components/network_tab.slint";
 import { DockerTab } from "components/docker_tab.slint";
-import { NetworkInterface, PortInfo, DockerNetwork } from "types.slint";
+import { NetworkInterface, PortInfo, DockerNetwork, DockerContainer } from "types.slint";
 
 export component MainWindow inherits Window {
     width: 1024px;
@@ -17,6 +18,8 @@ export component MainWindow inherits Window {
     in property <string> raw-output: "";
     in property <NetworkInterface> selected-network-detail;
     in property <[PortInfo]> filtered-ports: [];
+    in property <DockerNetwork> selected-docker-network;
+    in property <[DockerContainer]> docker-containers: [];
     
     out property <int> selected-network-index: -1;
     out property <string> selected-network-type: "";
@@ -24,12 +27,14 @@ export component MainWindow inherits Window {
     out property <string> destination: "";
     out property <string> selected-interface: "";
     in-out property <bool> show-network-detail: false;
+    in-out property <bool> show-docker-network-detail: false;
     
     callback network-selected(int);
     callback network-row-clicked(int);
     callback send-packet();
     callback refresh-data();
     callback show-network-popup();
+    callback docker-network-selected(int);
     callback copy-to-clipboard(string);
     
     VerticalBox {
@@ -57,6 +62,7 @@ export component MainWindow inherits Window {
                 title: "Docker";
                 DockerTab {
                     docker-networks: docker-networks;
+                    docker-network-clicked(index) => { docker-network-selected(index); }
                 }
             }
             
@@ -141,6 +147,14 @@ export component MainWindow inherits Window {
         network-detail: selected-network-detail;
         filtered-ports: filtered-ports;
         show-modal <=> show-network-detail;
+        copy-to-clipboard(data) => { copy-to-clipboard(data); }
+    }
+    
+    // Docker Network Detail Modal Overlay
+    if show-docker-network-detail : DockerNetworkDetailModal {
+        network-detail: selected-docker-network;
+        containers: docker-containers;
+        show-modal <=> show-docker-network-detail;
         copy-to-clipboard(data) => { copy-to-clipboard(data); }
     }
     
