@@ -1,6 +1,7 @@
 import { VerticalBox, HorizontalBox, TabWidget, ScrollView, Button, ComboBox, LineEdit } from "std-widgets.slint";
 import { NetworkDetailModal } from "components/network_detail_modal.slint";
 import { NetworkTab } from "components/network_tab.slint";
+import { DockerTab } from "components/docker_tab.slint";
 import { NetworkInterface, PortInfo, DockerNetwork } from "types.slint";
 
 export component MainWindow inherits Window {
@@ -54,23 +55,8 @@ export component MainWindow inherits Window {
             
             Tab {
                 title: "Docker";
-                VerticalBox {
-                    Text {
-                        text: "Docker Networks";
-                        font-size: 18px;
-                        font-weight: 700;
-                    }
-                    
-                    ScrollView {
-                        VerticalBox {
-                            for docker in docker-networks: HorizontalBox {
-                                Text { text: docker.name; }
-                                Text { text: docker.driver; }
-                                Text { text: docker.scope; }
-                                Text { text: docker.subnet; }
-                            }
-                        }
-                    }
+                DockerTab {
+                    docker-networks: docker-networks;
                 }
             }
             

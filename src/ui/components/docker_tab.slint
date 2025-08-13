@@ -1,0 +1,23 @@
+import { VerticalBox, HorizontalBox, ScrollView } from "std-widgets.slint";
+import { DockerNetwork } from "../types.slint";
+
+export component DockerTab inherits VerticalBox {
+    in property <[DockerNetwork]> docker-networks: [];
+    
+    Text {
+        text: "Docker Networks";
+        font-size: 18px;
+        font-weight: 700;
+    }
+    
+    ScrollView {
+        VerticalBox {
+            for docker in docker-networks: HorizontalBox {
+                Text { text: docker.name; }
+                Text { text: docker.driver; }
+                Text { text: docker.scope; }
+                Text { text: docker.subnet; }
+            }
+        }
+    }
+}
