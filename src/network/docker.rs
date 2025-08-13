@@ -19,10 +19,18 @@ pub struct DockerNetwork {
 /// This function uses the `docker network ls` command to get Docker network information.
 /// In a real implementation, we would also parse `docker network inspect` for detailed information.
 pub fn get_docker_networks() -> Result<Vec<DockerNetwork>, Box<dyn std::error::Error>> {
-    // Execute docker network ls command
-    let output = Command::new("docker")
-        .args(["network", "ls", "--format", "json"])
-        .output();
+    // Execute docker network ls command with platform-specific handling
+    let output = if cfg!(target_os = "windows") {
+        // Windows: Use WSL to execute docker command
+        Command::new("wsl.exe")
+            .args(["-e", "docker", "network", "ls", "--format", "json"])
+            .output()
+    } else {
+        // WSL/Linux: Execute docker command directly
+        Command::new("docker")
+            .args(["network", "ls", "--format", "json"])
+            .output()
+    };
 
     let mut networks = Vec::new();
 
@@ -68,37 +76,13 @@ pub fn get_docker_networks() -> Result<Vec<DockerNetwork>, Box<dyn std::error::E
                 }
             }
         }
+    } else if let Err(x) = output {
+        println!("Docker network error {x}");
     }
 
     // If we couldn't get data, provide some default networks
     if networks.is_empty() {
-        networks.push(DockerNetwork {
-            name: "bridge".to_string(),
-            driver: "bridge".to_string(),
-            scope: "local".to_string(),
-            subnet: "172.17.0.0/16".to_string(),
-        });
-
-        networks.push(DockerNetwork {
-            name: "host".to_string(),
-            driver: "host".to_string(),
-            scope: "local".to_string(),
-            subnet: "".to_string(),
-        });
-
-        networks.push(DockerNetwork {
-            name: "none".to_string(),
-            driver: "null".to_string(),
-            scope: "local".to_string(),
-            subnet: "".to_string(),
-        });
-
-        networks.push(DockerNetwork {
-            name: "my-custom-network".to_string(),
-            driver: "bridge".to_string(),
-            scope: "local".to_string(),
-            subnet: "192.168.100.0/24".to_string(),
-        });
+        println!("Could not load any networks for Docker!");
     }
 
     Ok(networks)
