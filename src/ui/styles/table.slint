@@ -1,0 +1,73 @@
+import { VerticalBox, HorizontalBox } from "std-widgets.slint";
+
+export component TableHeader inherits HorizontalBox {
+    in property <[{text: string, width: length}]> columns: [];
+    
+    for column in columns: Text {
+        text: column.text;
+        width: column.width;
+        font-weight: 600;
+    }
+}
+
+export component TableSeparator inherits Rectangle {
+    height: 1px;
+    background: #cccccc;
+}
+
+export component TableRowSeparator inherits Rectangle {
+    height: 1px;
+    background: #e0e0e0;
+}
+
+export component TableRow inherits VerticalBox {
+    callback row-clicked();
+    out property <bool> has-hover: touch-area.has-hover;
+    
+    touch-area := TouchArea {
+        clicked => { row-clicked(); }
+        
+        Rectangle {
+            background: touch-area.has-hover ? #2d5aa0 : transparent;
+            border-radius: 4px;
+            
+            @children
+        }
+    }
+}
+
+export component TableCell inherits Text {
+    in property <length> cell-width: 120px;
+    in property <bool> is-hover: false;
+    in property <color> hover-color: #ffffff;
+    in property <color> normal-color: #ffffff;  // Use system default
+    
+    width: cell-width;
+    color: is-hover ? hover-color : normal-color;
+}
+
+// Specialized cells for Network tab
+export component EnvironmentCell inherits TableCell {
+    in property <string> environment: "";
+    
+    normal-color: environment == "Windows" ? #0066cc : (environment == "WSL" ? #009900 : #666666);
+    font-weight: 500;
+}
+
+export component StatusCell inherits TableCell {
+    in property <bool> is-up: false;
+    
+    normal-color: is-up ? #009900 : #cc0000;
+    font-weight: 600;
+}
+
+export component AddressCell inherits TableCell {
+    font-family: "monospace";
+    font-size: 12px;
+    font-weight: 600;
+    wrap: TextWrap.word-wrap;
+}
+
+export component MacAddressCell inherits TableCell {
+    font-family: "monospace";
+}

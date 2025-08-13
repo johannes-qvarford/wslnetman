@@ -1,5 +1,6 @@
 import { VerticalBox, HorizontalBox, ScrollView } from "std-widgets.slint";
 import { DockerNetwork } from "../types.slint";
+import { TableHeader, TableSeparator, TableRowSeparator, TableRow, TableCell } from "../styles/table.slint";
 
 export component DockerTab inherits VerticalBox {
     in property <[DockerNetwork]> docker-networks: [];
@@ -11,12 +12,57 @@ export component DockerTab inherits VerticalBox {
     }
     
     ScrollView {
+        width: 100%;
         VerticalBox {
-            for docker in docker-networks: HorizontalBox {
-                Text { text: docker.name; }
-                Text { text: docker.driver; }
-                Text { text: docker.scope; }
-                Text { text: docker.subnet; }
+            // Header row
+            TableHeader {
+                columns: [
+                    {text: "Network Name", width: 200px},
+                    {text: "Driver", width: 120px},
+                    {text: "Scope", width: 100px},
+                    {text: "Subnet", width: 180px}
+                ];
+            }
+            
+            // Separator
+            TableSeparator {}
+            
+            // Docker networks data
+            for docker[index] in docker-networks: VerticalBox {
+                table-row := TableRow {
+                    row-clicked => {
+                        // Future: add docker network detail callback
+                    }
+                    
+                    HorizontalBox {
+                        padding: 8px;
+                        TableCell {
+                            text: docker.name;
+                            cell-width: 200px;
+                            is-hover: table-row.has-hover;
+                            font-weight: 500;
+                        }
+                        TableCell {
+                            text: docker.driver;
+                            cell-width: 120px;
+                            is-hover: table-row.has-hover;
+                        }
+                        TableCell {
+                            text: docker.scope;
+                            cell-width: 100px;
+                            is-hover: table-row.has-hover;
+                        }
+                        TableCell {
+                            text: docker.subnet == "" ? "N/A" : docker.subnet;
+                            cell-width: 180px;
+                            is-hover: table-row.has-hover;
+                            font-family: "monospace";
+                        }
+                    }
+                }
+                
+                // Grid line separator
+                TableRowSeparator {}
             }
         }
     }
