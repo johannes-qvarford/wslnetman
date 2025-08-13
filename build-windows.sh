@@ -40,7 +40,7 @@ export CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc
 export CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++
 
 # Build configuration
-BUILD_TYPE="${1:-release}"
+BUILD_TYPE="${1:-debug}"
 
 if [ "$BUILD_TYPE" = "debug" ]; then
     echo -e "${BLUE}Building debug version for Windows...${NC}"

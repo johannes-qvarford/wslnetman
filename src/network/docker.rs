@@ -164,7 +164,8 @@ pub fn get_containers_for_network(
                             .get("Ports")
                             .and_then(|v| v.as_str())
                             .unwrap_or("")
-                            .to_string();
+                            .to_string()
+                            .replace(", ", "\n");
                         let id = container_info
                             .get("ID")
                             .and_then(|v| v.as_str())

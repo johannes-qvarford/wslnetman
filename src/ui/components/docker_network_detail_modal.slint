@@ -22,7 +22,7 @@ export component DockerNetworkDetailModal inherits Rectangle {
     
     // Centered modal content
     Rectangle {
-        width: 750px;
+        width: 900px;
         height: root.height - 80px;
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
@@ -147,7 +147,7 @@ export component DockerNetworkDetailModal inherits Rectangle {
                                 Text { text: "Container Name"; width: 140px; font-weight: 600; font-size: 12px; color: #cccccc; }
                                 Text { text: "Image"; width: 120px; font-weight: 600; font-size: 12px; color: #cccccc; }
                                 Text { text: "Status"; width: 100px; font-weight: 600; font-size: 12px; color: #cccccc; }
-                                Text { text: "Ports"; width: 120px; font-weight: 600; font-size: 12px; color: #cccccc; }
+                                Text { text: "Ports"; width: 240px; font-weight: 600; font-size: 12px; color: #cccccc; }
                                 Text { text: "Container ID"; width: 100px; font-weight: 600; font-size: 12px; color: #cccccc; }
                             }
                             
@@ -181,8 +181,8 @@ export component DockerNetworkDetailModal inherits Rectangle {
                                 }
                                 if container.ports != "" : Button {
                                     text: container.ports;
-                                    width: 120px;
-                                    height: 26px;
+                                    width: 240px;
+                                    height: 52px;
                                     clicked => {
                                         copy-to-clipboard(container.ports);
                                     }
