@@ -1,23 +1,5 @@
 import { VerticalBox, HorizontalBox, ScrollView, Button } from "std-widgets.slint";
-
-export struct NetworkInterface {
-    name: string,
-    ipv4_addresses: [string],
-    ipv6_addresses: [string],
-    mac_address: string,
-    is_up: bool,
-    is_loopback: bool,
-    environment: string,
-}
-
-export struct PortInfo {
-    process_id: string,
-    process_name: string,
-    protocol: string,
-    port: string,
-    direction: string,
-    network: string,
-}
+import { NetworkInterface, PortInfo } from "../types.slint";
 
 export component NetworkDetailModal inherits Rectangle {
     in property <NetworkInterface> network-detail;

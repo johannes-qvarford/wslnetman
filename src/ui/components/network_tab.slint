@@ -1,0 +1,176 @@
+import { VerticalBox, HorizontalBox, ScrollView } from "std-widgets.slint";
+import { NetworkInterface, PortInfo } from "../types.slint";
+
+export component NetworkTab inherits VerticalBox {
+    in property <[NetworkInterface]> network-interfaces: [];
+    in property <[PortInfo]> ports: [];
+    
+    callback network-row-clicked(int);
+    
+    Text {
+        text: "Networks";
+        font-size: 18px;
+        font-weight: 700;
+    }
+    
+    HorizontalBox {
+        ScrollView {
+            width: 100%;
+            VerticalBox {
+                // Header row
+                HorizontalBox {
+                    Text { text: "Environment"; width: 120px; font-weight: 600; }
+                    Text { text: "Interface"; width: 140px; font-weight: 600; }
+                    Text { text: "MAC Address"; width: 140px; font-weight: 600; }
+                    Text { text: "IPv4 Addresses"; width: 160px; font-weight: 600; }
+                    Text { text: "IPv6 Addresses"; width: 200px; font-weight: 600; }
+                    Text { text: "Status"; width: 80px; font-weight: 600; }
+                }
+                
+                // Separator
+                Rectangle {
+                    height: 1px;
+                    background: #cccccc;
+                }
+                
+                // Network interfaces data
+                for network[index] in network-interfaces : VerticalBox {
+                    touch-area := TouchArea {
+                        clicked => {
+                            network-row-clicked(index);
+                        }
+                        
+                        Rectangle {
+                            background: parent.has-hover ? #2d5aa0 : transparent;
+                            border-radius: 4px;
+                            
+                            HorizontalBox {
+                                padding: 8px;
+                                Text { 
+                                    text: network.environment; 
+                                    width: 120px; 
+                                    color: touch-area.has-hover ? #ffffff : (network.environment == "Windows" ? #0066cc : (network.environment == "WSL" ? #009900 : #666666));
+                                    font-weight: 500;
+                                }
+                                if touch-area.has-hover : Text { 
+                                    text: network.name; 
+                                    width: 140px; 
+                                    font-weight: network.is_loopback ? 400 : 500;
+                                    color: #ffffff;
+                                }
+                                if !touch-area.has-hover : Text { 
+                                    text: network.name; 
+                                    width: 140px; 
+                                    font-weight: network.is_loopback ? 400 : 500;
+                                }
+                                if touch-area.has-hover : Text { 
+                                    text: network.mac_address == "" ? "N/A" : network.mac_address; 
+                                    width: 140px;
+                                    font-family: "monospace";
+                                    color: #ffffff;
+                                }
+                                if !touch-area.has-hover : Text { 
+                                    text: network.mac_address == "" ? "N/A" : network.mac_address; 
+                                    width: 140px;
+                                    font-family: "monospace";
+                                }
+                                if touch-area.has-hover : Text { 
+                                    text: {
+                                        // Join IPv4 addresses with commas
+                                        network.ipv4_addresses.length > 0 ? (
+                                            network.ipv4_addresses.length > 1 ? 
+                                                network.ipv4_addresses[0] + ", " + (network.ipv4_addresses.length > 2 ? network.ipv4_addresses[1] + ", ..." : network.ipv4_addresses[1])
+                                                : network.ipv4_addresses[0]
+                                        ) : "N/A"
+                                    };
+                                    width: 160px;
+                                    wrap: TextWrap.word-wrap;
+                                    font-family: "monospace";
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                    color: #ffffff;
+                                }
+                                if !touch-area.has-hover : Text { 
+                                    text: {
+                                        // Join IPv4 addresses with commas
+                                        network.ipv4_addresses.length > 0 ? (
+                                            network.ipv4_addresses.length > 1 ? 
+                                                network.ipv4_addresses[0] + ", " + (network.ipv4_addresses.length > 2 ? network.ipv4_addresses[1] + ", ..." : network.ipv4_addresses[1])
+                                                : network.ipv4_addresses[0]
+                                        ) : "N/A"
+                                    };
+                                    width: 160px;
+                                    wrap: TextWrap.word-wrap;
+                                    font-family: "monospace";
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                }
+                                if touch-area.has-hover : Text { 
+                                    text: {
+                                        // Join IPv6 addresses with commas
+                                        network.ipv6_addresses.length > 0 ? (
+                                            network.ipv6_addresses.length > 1 ? 
+                                                network.ipv6_addresses[0] + ", " + (network.ipv6_addresses.length > 2 ? network.ipv6_addresses[1] + ", ..." : network.ipv6_addresses[1])
+                                                : network.ipv6_addresses[0]
+                                        ) : "N/A"
+                                    };
+                                    width: 200px;
+                                    wrap: TextWrap.word-wrap;
+                                    font-family: "monospace";
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                    color: #ffffff;
+                                }
+                                if !touch-area.has-hover : Text { 
+                                    text: {
+                                        // Join IPv6 addresses with commas
+                                        network.ipv6_addresses.length > 0 ? (
+                                            network.ipv6_addresses.length > 1 ? 
+                                                network.ipv6_addresses[0] + ", " + (network.ipv6_addresses.length > 2 ? network.ipv6_addresses[1] + ", ..." : network.ipv6_addresses[1])
+                                                : network.ipv6_addresses[0]
+                                        ) : "N/A"
+                                    };
+                                    width: 200px;
+                                    wrap: TextWrap.word-wrap;
+                                    font-family: "monospace";
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                }
+                                Text { 
+                                    text: network.is_up ? "UP" : "DOWN"; 
+                                    width: 80px;
+                                    color: touch-area.has-hover ? #ffffff : (network.is_up ? #009900 : #cc0000);
+                                    font-weight: 600;
+                                }
+                            }
+                        }
+                    }
+                    // Grid line separator
+                    Rectangle {
+                        height: 1px;
+                        background: #e0e0e0;
+                    }
+                }
+            }
+        }
+        
+        ScrollView {
+            width: 700px;
+            VerticalBox {
+                Text {
+                    text: "Port Information";
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+                for port in ports : HorizontalBox {
+                    Text { text: port.process-id; }
+                    Text { text: port.process-name; }
+                    Text { text: port.protocol; }
+                    Text { text: port.port; }
+                    Text { text: port.direction; }
+                    Text { text: port.network; }
+                }
+            }
+        }
+    }
+}

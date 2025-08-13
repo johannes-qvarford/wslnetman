@@ -1,0 +1,25 @@
+export struct NetworkInterface {
+    name: string,
+    ipv4_addresses: [string],
+    ipv6_addresses: [string],
+    mac_address: string,
+    is_up: bool,
+    is_loopback: bool,
+    environment: string,  // New field to identify source environment
+}
+
+export struct PortInfo {
+    process_id: string,
+    process_name: string,
+    protocol: string,
+    port: string,
+    direction: string,
+    network: string,
+}
+
+export struct DockerNetwork {
+    name: string,
+    driver: string,
+    scope: string,
+    subnet: string,
+}
