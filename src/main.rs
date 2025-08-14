@@ -319,18 +319,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     return;
                 }
 
-                // Kill the process
-                let result = if cfg!(target_os = "windows") {
-                    // Windows: Use taskkill
-                    std::process::Command::new("taskkill")
-                        .args(["/F", "/PID", &process_id_str])
-                        .output()
-                } else {
-                    // Linux/WSL: Use kill
-                    std::process::Command::new("kill")
-                        .args(["-9", &process_id_str])
-                        .output()
-                };
+                // Kill the process using Windows taskkill
+                let result = std::process::Command::new("taskkill")
+                    .args(["/F", "/PID", &process_id_str])
+                    .output();
 
                 match result {
                     Ok(output) => {

@@ -29,18 +29,10 @@ pub struct DockerContainer {
 /// This function uses the `docker network ls` command to get Docker network information.
 /// In a real implementation, we would also parse `docker network inspect` for detailed information.
 pub fn get_docker_networks() -> Result<Vec<DockerNetwork>, Box<dyn std::error::Error>> {
-    // Execute docker network ls command with platform-specific handling
-    let output = if cfg!(target_os = "windows") {
-        // Windows: Use WSL to execute docker command
-        Command::new("wsl.exe")
-            .args(["-e", "docker", "network", "ls", "--format", "json"])
-            .output()
-    } else {
-        // WSL/Linux: Execute docker command directly
-        Command::new("docker")
-            .args(["network", "ls", "--format", "json"])
-            .output()
-    };
+    // Execute docker network ls command via WSL
+    let output = Command::new("wsl.exe")
+        .args(["-e", "docker", "network", "ls", "--format", "json"])
+        .output();
 
     let mut networks = Vec::new();
 
@@ -104,32 +96,18 @@ pub fn get_docker_networks() -> Result<Vec<DockerNetwork>, Box<dyn std::error::E
 pub fn get_containers_for_network(
     network_name: &str,
 ) -> Result<Vec<DockerContainer>, Box<dyn std::error::Error>> {
-    // Execute docker ps command with network filter and platform-specific handling
-    let output = if cfg!(target_os = "windows") {
-        // Windows: Use WSL to execute docker command
-        Command::new("wsl.exe")
-            .args([
-                "-e",
-                "docker",
-                "ps",
-                "--filter",
-                &format!("network={network_name}"),
-                "--format",
-                "json",
-            ])
-            .output()
-    } else {
-        // WSL/Linux: Execute docker command directly
-        Command::new("docker")
-            .args([
-                "ps",
-                "--filter",
-                &format!("network={network_name}"),
-                "--format",
-                "json",
-            ])
-            .output()
-    };
+    // Execute docker ps command with network filter via WSL
+    let output = Command::new("wsl.exe")
+        .args([
+            "-e",
+            "docker",
+            "ps",
+            "--filter",
+            &format!("network={network_name}"),
+            "--format",
+            "json",
+        ])
+        .output();
 
     let mut containers = Vec::new();
 

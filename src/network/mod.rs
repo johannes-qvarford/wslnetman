@@ -1,7 +1,6 @@
 // Network module
 pub mod docker;
 pub mod windows;
-pub mod wsl;
 
 /// Represents the environment where a network interface originates
 #[derive(Debug, Clone, PartialEq)]
@@ -44,46 +43,30 @@ pub struct DockerNetwork {
 
 /// Get network interfaces from all environments
 ///
-/// This function returns network interfaces from the appropriate environment based on the target platform.
+/// This function returns network interfaces from Windows and WSL (via wsl.exe interop).
 pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::error::Error>> {
     let mut all_interfaces = Vec::new();
 
-    if cfg!(target_os = "windows") {
-        // When running on Windows, get both Windows and WSL network interfaces
-        match windows::get_network_interfaces() {
-            Ok(interfaces) => all_interfaces.extend(interfaces),
-            Err(e) => eprintln!("Error getting Windows network interfaces: {e}"),
-        }
-
-        match wsl::get_network_interfaces_via_wsl() {
-            Ok(interfaces) => all_interfaces.extend(interfaces),
-            Err(e) => eprintln!("Error getting WSL network interfaces via wsl.exe: {e}"),
-        }
-    } else {
-        // When running on WSL/Linux, get both Windows (via PowerShell) and WSL interfaces
-        match windows::get_network_interfaces() {
-            Ok(interfaces) => all_interfaces.extend(interfaces),
-            Err(e) => eprintln!("Error getting Windows network interfaces via WSL: {e}"),
-        }
-
-        match wsl::get_network_interfaces() {
-            Ok(interfaces) => all_interfaces.extend(interfaces),
-            Err(e) => eprintln!("Error getting WSL network interfaces: {e}"),
-        }
+    // Get Windows network interfaces
+    match windows::get_network_interfaces() {
+        Ok(interfaces) => all_interfaces.extend(interfaces),
+        Err(e) => eprintln!("Error getting Windows network interfaces: {e}"),
     }
+
+    // Get WSL network interfaces via wsl.exe
+    match windows::get_wsl_network_interfaces() {
+        Ok(interfaces) => all_interfaces.extend(interfaces),
+        Err(e) => eprintln!("Error getting WSL network interfaces via wsl.exe: {e}"),
+    }
+
     Ok(all_interfaces)
 }
 
-/// Get active ports from the current system
+/// Get active ports from Windows
 ///
-/// This function returns active ports from either Windows or WSL
-/// depending on the compilation target.
+/// This function returns active ports from Windows.
 pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
-    let ports = if cfg!(target_os = "windows") {
-        windows::get_active_ports()?
-    } else {
-        wsl::get_active_ports()?
-    };
+    let ports = windows::get_active_ports()?;
     Ok(ports)
 }
 

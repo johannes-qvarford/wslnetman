@@ -39,31 +39,16 @@ pub fn send_ping(
     let count = count.unwrap_or(4);
     let timeout = timeout.unwrap_or(5);
 
-    // Determine the ping command based on the platform
-    // For now, we'll assume a Unix-like system (WSL)
-    let output = if cfg!(target_os = "windows") {
-        // Windows ping command
-        Command::new("ping")
-            .args([
-                "-n",
-                &count.to_string(),
-                "-w",
-                &timeout.to_string(),
-                destination,
-            ])
-            .output()?
-    } else {
-        // Unix-like ping command (WSL)
-        Command::new("ping")
-            .args([
-                "-c",
-                &count.to_string(),
-                "-W",
-                &timeout.to_string(),
-                destination,
-            ])
-            .output()?
-    };
+    // Use Windows ping command
+    let output = Command::new("ping")
+        .args([
+            "-n",
+            &count.to_string(),
+            "-w",
+            &(timeout * 1000).to_string(), // Windows ping expects timeout in milliseconds
+            destination,
+        ])
+        .output()?;
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);

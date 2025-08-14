@@ -45,10 +45,6 @@ windows = { version = "0.52", features = [
     "Win32_Networking_WinSock",
 ] }
 
-[target.'cfg(unix)'.dependencies]
-# Unix-specific dependencies
-nix = "0.27"
-socket2 = "0.5"
 
 [build-dependencies]
 slint-build = "1.0"
