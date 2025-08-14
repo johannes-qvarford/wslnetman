@@ -112,8 +112,6 @@ fn parse_ip_address_with_type(addr_with_prefix: &str) -> Option<(String, bool)> 
 ///
 /// This function uses the `ss` command to get active port information.
 pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
-    println!("WSL: Getting active ports using 'ss -tuln'");
-
     // Execute ss command to get listening ports
     let output = Command::new("ss").args(["-tuln"]).output();
 
@@ -123,11 +121,10 @@ pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
     if let Ok(output) = output {
         if output.status.success() {
             let output_str = String::from_utf8_lossy(&output.stdout);
-            println!("WSL: ss command output:\n{output_str}");
 
             // Parse the output to extract port information
             // Example line: "tcp    LISTEN  0      128          0.0.0.0:8080              0.0.0.0:*"
-            for (line_num, line) in output_str.lines().enumerate() {
+            for line in output_str.lines() {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 5 && (parts[0] == "tcp" || parts[0] == "udp") {
                     let port_info = PortInfo {
@@ -138,10 +135,6 @@ pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
                         direction: parts[1].to_string(),
                         network: parts[3].to_string(),
                     };
-                    println!(
-                        "WSL: Line {}: Parsed port {} on {} ({})",
-                        line_num, port_info.port, port_info.network, port_info.protocol
-                    );
                     ports.push(port_info);
                 }
             }

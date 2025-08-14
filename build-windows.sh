@@ -66,6 +66,7 @@ echo ""
 
 # Build the project
 echo -e "${BLUE}Starting build...${NC}"
+echo -e "Cargo command is ${CARGO_CMD}"
 if ${CARGO_CMD}; then
     echo ""
     echo -e "${GREEN}✅ Build completed successfully!${NC}"

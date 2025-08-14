@@ -21,6 +21,10 @@ struct WindowsIPAddress {
 struct WindowsNetAdapter {
     #[serde(rename = "Name")]
     name: String,
+    #[serde(rename = "InterfaceDescription")]
+    _interface_description: String,
+    #[serde(rename = "ifIndex")]
+    _if_index: u32,
     #[serde(rename = "Status")]
     status: String,
     #[serde(rename = "MacAddress")]
@@ -31,7 +35,6 @@ struct WindowsNetAdapter {
 ///
 /// This function uses WSL's interoperability with Windows to gather Windows network information.
 pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::error::Error>> {
-    println!("WINDOWS: Getting network interfaces using PowerShell");
     // Try to get IP addresses from Windows
     let ip_output = Command::new("powershell.exe")
         .args([
@@ -58,8 +61,7 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
 
     if let Ok(adapter_output) = adapter_output {
         if adapter_output.status.success() {
-            let adapter_str = String::from_utf8_lossy(&adapter_output.stdout);
-            println!("WINDOWS: Adapter output:\n{adapter_str}");
+            let _adapter_str = String::from_utf8_lossy(&adapter_output.stdout);
 
             // Try to parse JSON output - handle both single object and array cases
             let adapter_result = serde_json::from_slice::<Vec<WindowsNetAdapter>>(
@@ -73,12 +75,7 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
 
             match adapter_result {
                 Ok(adapters) => {
-                    println!("WINDOWS: Parsed {} adapters", adapters.len());
-                    for (idx, adapter) in adapters.iter().enumerate() {
-                        println!(
-                            "WINDOWS: Adapter {}: name='{}' status='{}' mac='{:?}'",
-                            idx, adapter.name, adapter.status, adapter.mac_address
-                        );
+                    for adapter in adapters {
                         if let Some(mac) = &adapter.mac_address {
                             // Clean up MAC address format (remove dashes, add colons)
                             let clean_mac = mac.replace("-", ":");
@@ -87,44 +84,21 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                         adapter_status_map.insert(adapter.name.clone(), adapter.status == "Up");
                     }
                 }
-                Err(parse_error) => {
-                    println!("WINDOWS: Failed to parse adapter JSON: {parse_error}");
-                    println!(
-                        "WINDOWS: Raw stdout length: {}",
-                        adapter_output.stdout.len()
-                    );
-                    println!(
-                        "WINDOWS: Raw stderr: {}",
-                        String::from_utf8_lossy(&adapter_output.stderr)
-                    );
-
-                    // Try to identify problematic characters
-                    let bytes = &adapter_output.stdout;
-                    let mut non_ascii_positions = Vec::new();
-                    for (i, &byte) in bytes.iter().enumerate() {
-                        if byte > 127 {
-                            non_ascii_positions.push((i, byte));
-                        }
-                    }
-                    if !non_ascii_positions.is_empty() {
-                        println!(
-                            "WINDOWS: Found non-ASCII bytes at positions: {non_ascii_positions:?}"
-                        );
-                    }
+                Err(_parse_error) => {
+                    // JSON parsing failed, continue without adapter info
                 }
             }
         } else {
-            println!("WINDOWS: Adapter PowerShell command failed");
+            // Adapter PowerShell command failed
         }
-    } else if let Err(x) = adapter_output {
-        println!("WINDOWS: Failed to get adapter output: {x}");
+    } else {
+        // Failed to get adapter output
     }
 
     // Process IP address information if available
     if let Ok(ip_output) = ip_output {
         if ip_output.status.success() {
-            let ip_str = String::from_utf8_lossy(&ip_output.stdout);
-            println!("WINDOWS: IP output:\n{ip_str}");
+            let _ip_str = String::from_utf8_lossy(&ip_output.stdout);
 
             // Try to parse JSON output - handle both single object and array cases
             let ip_result = serde_json::from_slice::<Vec<WindowsIPAddress>>(&ip_output.stdout)
@@ -135,7 +109,6 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                 });
 
             if let Ok(ip_addresses) = ip_result {
-                println!("WINDOWS: Parsed {} IP addresses", ip_addresses.len());
                 // Group IP addresses by interface and type
                 let mut interface_ipv4_map: std::collections::HashMap<String, Vec<String>> =
                     std::collections::HashMap::new();
@@ -168,8 +141,6 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                     all_interfaces.insert(name.clone());
                 }
 
-                println!("{all_interfaces:?}");
-
                 for name in all_interfaces {
                     let mac_address = adapter_map.get(&name).cloned();
                     let is_up = adapter_status_map.get(&name).copied().unwrap_or(true);
@@ -188,8 +159,8 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
                 }
             }
         }
-    } else if let Err(x2) = ip_output {
-        println!("Failed to get Windows ip output {x2}");
+    } else {
+        // Failed to get Windows IP output
     }
 
     Ok(interfaces)
@@ -199,8 +170,6 @@ pub fn get_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::er
 ///
 /// This function uses PowerShell Get-NetTCPConnection and netstat to get active port information with process names.
 pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
-    println!("WINDOWS: Getting active ports using PowerShell and netstat");
-
     // First try PowerShell Get-NetTCPConnection (Windows 8+)
     let ps_output = Command::new("powershell.exe")
         .args([
@@ -215,34 +184,26 @@ pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
     if let Ok(ps_output) = ps_output {
         if ps_output.status.success() {
             let output_str = String::from_utf8_lossy(&ps_output.stdout);
-            println!("WINDOWS: PowerShell output:\n{output_str}");
 
             // Parse JSON output
             if let Ok(connections) = parse_powershell_connections(&output_str) {
                 ports.extend(connections);
             }
-        } else {
-            println!("WINDOWS: PowerShell command failed, falling back to netstat");
         }
     }
 
     // Fallback to netstat if PowerShell failed or returned no results
     if ports.is_empty() {
-        println!("WINDOWS: Using netstat fallback");
-
         let netstat_output = Command::new("netstat").args(["-ano", "-p", "TCP"]).output();
 
         if let Ok(netstat_output) = netstat_output {
             if netstat_output.status.success() {
                 let output_str = String::from_utf8_lossy(&netstat_output.stdout);
-                println!("WINDOWS: netstat output:\n{output_str}");
 
                 ports.extend(parse_netstat_output(&output_str));
             }
         }
     }
-
-    println!("WINDOWS: Retrieved {} total ports", ports.len());
     Ok(ports)
 }
 
@@ -268,7 +229,7 @@ fn parse_powershell_connections(
     let connections: Vec<PSConnection> = serde_json::from_str(json_str)
         .or_else(|_| serde_json::from_str::<PSConnection>(json_str).map(|single| vec![single]))?;
 
-    for (idx, conn) in connections.iter().enumerate() {
+    for conn in connections.iter() {
         let process_name = conn
             .process_name
             .clone()
@@ -288,10 +249,7 @@ fn parse_powershell_connections(
             network: format!("{}:{}", conn.local_address, conn.local_port),
         };
 
-        println!(
-            "WINDOWS: PowerShell {} - TCP:{} process='{}' on {}",
-            idx, conn.local_port, process_name, conn.local_address
-        );
+        // Port parsed successfully
 
         ports.push(port_info);
     }
@@ -303,7 +261,7 @@ fn parse_powershell_connections(
 fn parse_netstat_output(output_str: &str) -> Vec<PortInfo> {
     let mut ports = Vec::new();
 
-    for (line_num, line) in output_str.lines().enumerate() {
+    for line in output_str.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
 
         // netstat -ano format: Proto Local_Address Foreign_Address State PID
@@ -327,7 +285,7 @@ fn parse_netstat_output(output_str: &str) -> Vec<PortInfo> {
                 network: local_address.to_string(),
             };
 
-            println!("WINDOWS: netstat {line_num} - TCP:{port} PID={pid} on {local_address}");
+            // Port parsed from netstat
 
             ports.push(port_info);
         }

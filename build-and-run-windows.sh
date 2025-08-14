@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./build-windows.sh && ./run-windows.sh
+./build-windows.sh debug && ./run-windows.sh debug

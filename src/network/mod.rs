@@ -49,14 +49,12 @@ pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std
     let mut all_interfaces = Vec::new();
 
     if cfg!(target_os = "windows") {
-        println!("MAIN: Getting Windows network interfaces");
         // When running on Windows, only get Windows network interfaces
         match windows::get_network_interfaces() {
             Ok(interfaces) => all_interfaces.extend(interfaces),
             Err(e) => eprintln!("Error getting Windows network interfaces: {e}"),
         }
     } else {
-        println!("MAIN: Getting WSL/Linux network interfaces");
         // When running on WSL/Linux, get both Windows (via PowerShell) and WSL interfaces
         match windows::get_network_interfaces() {
             Ok(interfaces) => all_interfaces.extend(interfaces),
@@ -68,11 +66,6 @@ pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std
             Err(e) => eprintln!("Error getting WSL network interfaces: {e}"),
         }
     }
-
-    println!(
-        "MAIN: Retrieved {} total network interfaces",
-        all_interfaces.len()
-    );
     Ok(all_interfaces)
 }
 
@@ -81,17 +74,11 @@ pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std
 /// This function returns active ports from either Windows or WSL
 /// depending on the compilation target.
 pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
-    println!("MAIN: Getting active ports...");
-
     let ports = if cfg!(target_os = "windows") {
-        println!("MAIN: Using Windows port discovery");
         windows::get_active_ports()?
     } else {
-        println!("MAIN: Using WSL/Linux port discovery");
         wsl::get_active_ports()?
     };
-
-    println!("MAIN: Retrieved {} total active ports", ports.len());
     Ok(ports)
 }
 
@@ -102,20 +89,13 @@ pub fn filter_ports_for_interface(
     interface: &NetworkInterface,
     all_ports: &[PortInfo],
 ) -> Vec<PortInfo> {
-    println!("FILTER: Filtering ports for interface '{}'", interface.name);
-    println!(
-        "FILTER: Interface has {} total ports to check",
-        all_ports.len()
-    );
-
     let mut filtered_ports = Vec::new();
 
     // Collect all IP addresses from the interface
     let mut interface_ips = interface.ipv4_addresses.clone();
     interface_ips.extend(interface.ipv6_addresses.clone());
-    println!("FILTER: Interface IPs: {interface_ips:?}");
 
-    for (port_idx, port) in all_ports.iter().enumerate() {
+    for port in all_ports.iter() {
         // Extract the IP address from the network field (format: "ip:port")
         let port_ip = if let Some(colon_pos) = port.network.rfind(':') {
             port.network[..colon_pos].to_string()
@@ -131,24 +111,9 @@ pub fn filter_ports_for_interface(
             || port_ip == "*";
 
         if matches {
-            println!(
-                "FILTER: Port {} - MATCHED: {}:{} (process: {}) on network {}",
-                port_idx, port.protocol, port.port, port.process_name, port.network
-            );
             filtered_ports.push(port.clone());
-        } else {
-            println!(
-                "FILTER: Port {} - SKIPPED: {}:{} on network {} (doesn't match interface)",
-                port_idx, port.protocol, port.port, port.network
-            );
         }
     }
-
-    println!(
-        "FILTER: Returning {} filtered ports for interface '{}'",
-        filtered_ports.len(),
-        interface.name
-    );
     filtered_ports
 }
 

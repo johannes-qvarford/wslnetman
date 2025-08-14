@@ -17,7 +17,6 @@ use network::{
 /// Refresh all data for the application
 fn refresh_all_data(app_weak: &slint::Weak<MainWindow>) {
     let app = app_weak.unwrap();
-    println!("Refreshing data...");
 
     // Refresh network interfaces
     match get_all_network_interfaces() {
@@ -62,32 +61,21 @@ fn refresh_all_data(app_weak: &slint::Weak<MainWindow>) {
     }
 
     // Refresh ports
-    println!("MAIN: Starting port refresh...");
     match get_active_ports() {
         Ok(ports) => {
-            println!("MAIN: Converting {} ports to Slint format", ports.len());
-
             // Convert to Slint-compatible format
             let slint_ports: Vec<slint_generatedMainWindow::PortInfo> = ports
                 .into_iter()
-                .enumerate()
-                .map(|(idx, port)| {
-                    println!(
-                        "MAIN: Port {}: {}:{} process='{}' network='{}'",
-                        idx, port.protocol, port.port, port.process_name, port.network
-                    );
-                    slint_generatedMainWindow::PortInfo {
-                        process_id: port.process_id.into(),
-                        process_name: port.process_name.into(),
-                        protocol: port.protocol.into(),
-                        port: port.port.into(),
-                        direction: port.direction.into(),
-                        network: port.network.into(),
-                    }
+                .map(|port| slint_generatedMainWindow::PortInfo {
+                    process_id: port.process_id.into(),
+                    process_name: port.process_name.into(),
+                    protocol: port.protocol.into(),
+                    port: port.port.into(),
+                    direction: port.direction.into(),
+                    network: port.network.into(),
                 })
                 .collect();
 
-            println!("MAIN: Setting {} ports in UI", slint_ports.len());
             app.set_ports(slint_ports.as_slice().into());
         }
         Err(e) => {
@@ -131,10 +119,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let app_weak = app.as_weak();
-    app.on_network_selected(move |index| {
+    app.on_network_selected(move |_index| {
         let _app = app_weak.unwrap();
         // Handle network selection
-        println!("Network selected: {index}");
+        // Network selected
         // TODO: Implement actual network selection handling
     });
 
@@ -142,7 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_weak = app.as_weak();
     app.on_network_row_clicked(move |index| {
         let app = app_weak.unwrap();
-        println!("Network row clicked: {index}");
+        // Network row clicked
 
         // Get current network interfaces
         let network_interfaces = app.get_network_interfaces();
@@ -299,7 +287,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if let Err(e) = clipboard.set_text(&text_str) {
                     eprintln!("Failed to copy to clipboard: {e}");
                 } else {
-                    println!("Copied to clipboard: {text_str}");
+                    // Copied to clipboard
                 }
             }
             Err(e) => {
@@ -312,7 +300,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_weak = app.as_weak();
     app.on_docker_network_selected(move |index| {
         let app = app_weak.unwrap();
-        println!("Docker network selected: {index}");
+        // Docker network selected
 
         // Get current docker networks
         let docker_networks = app.get_docker_networks();
