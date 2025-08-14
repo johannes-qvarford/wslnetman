@@ -6,6 +6,57 @@
 use crate::network::{NetworkEnvironment, NetworkInterface, PortInfo};
 use std::process::Command;
 
+/// Get network interfaces from WSL system via wsl.exe (called from Windows)
+///
+/// This function uses `wsl.exe` to execute `ip addr` and `ip link` commands to get network interface information.
+pub fn get_network_interfaces_via_wsl() -> Result<Vec<NetworkInterface>, Box<dyn std::error::Error>>
+{
+    // Execute ip -br addr show command for brief format via wsl.exe
+    let addr_output = Command::new("wsl.exe")
+        .args(["-e", "ip", "-br", "addr", "show"])
+        .output();
+
+    // Execute ip -br link show command to get MAC addresses in brief format via wsl.exe
+    let link_output = Command::new("wsl.exe")
+        .args(["-e", "ip", "-br", "link", "show"])
+        .output();
+
+    let mut interfaces = Vec::new();
+
+    // Parse MAC addresses from ip -br link output
+    let mut mac_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+    if let Ok(link_output) = link_output {
+        if link_output.status.success() {
+            let link_str = String::from_utf8_lossy(&link_output.stdout);
+            parse_brief_mac_addresses(&link_str, &mut mac_map);
+        }
+    }
+
+    // Process addr output if available
+    if let Ok(addr_output) = addr_output {
+        if addr_output.status.success() {
+            let output_str = String::from_utf8_lossy(&addr_output.stdout);
+
+            // Parse the brief format output - each line is one interface
+            // Format: "eth0 UP 172.20.11.89/20 fe80::215:5dff:fef9:e225/64"
+            for line in output_str.lines() {
+                let trimmed = line.trim();
+                if trimmed.is_empty() {
+                    continue;
+                }
+
+                if let Some(interface) = parse_brief_addr_line(trimmed, &mac_map) {
+                    interfaces.push(interface);
+                }
+            }
+        }
+    } else if let Err(x) = addr_output {
+        println!("Failed to parse addr output via wsl.exe: {x}");
+    }
+
+    Ok(interfaces)
+}
+
 /// Get network interfaces from WSL system
 ///
 /// This function uses the `ip addr` and `ip link` commands to get network interface information.

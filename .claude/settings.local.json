@@ -16,7 +16,9 @@
       "Bash(mkdir:*)",
       "Bash(cat:*)",
       "Bash(./build-windows.sh:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(./run-windows.sh:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

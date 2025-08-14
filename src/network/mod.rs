@@ -49,10 +49,15 @@ pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std
     let mut all_interfaces = Vec::new();
 
     if cfg!(target_os = "windows") {
-        // When running on Windows, only get Windows network interfaces
+        // When running on Windows, get both Windows and WSL network interfaces
         match windows::get_network_interfaces() {
             Ok(interfaces) => all_interfaces.extend(interfaces),
             Err(e) => eprintln!("Error getting Windows network interfaces: {e}"),
+        }
+
+        match wsl::get_network_interfaces_via_wsl() {
+            Ok(interfaces) => all_interfaces.extend(interfaces),
+            Err(e) => eprintln!("Error getting WSL network interfaces via wsl.exe: {e}"),
         }
     } else {
         // When running on WSL/Linux, get both Windows (via PowerShell) and WSL interfaces
