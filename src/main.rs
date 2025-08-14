@@ -73,6 +73,10 @@ fn refresh_all_data(app_weak: &slint::Weak<MainWindow>) {
                     port: port.port.into(),
                     direction: port.direction.into(),
                     network: port.network.into(),
+                    environment: match port.environment {
+                        network::NetworkEnvironment::Windows => "Windows".into(),
+                        network::NetworkEnvironment::Wsl => "WSL".into(),
+                    },
                 })
                 .collect();
 
@@ -173,6 +177,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     port: port.port.to_string(),
                     direction: port.direction.to_string(),
                     network: port.network.to_string(),
+                    environment: match port.environment.as_str() {
+                        "Windows" => network::NetworkEnvironment::Windows,
+                        _ => network::NetworkEnvironment::Wsl,
+                    },
                 })
                 .collect();
 
@@ -189,6 +197,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     port: port.port.into(),
                     direction: port.direction.into(),
                     network: port.network.into(),
+                    environment: match port.environment {
+                        network::NetworkEnvironment::Windows => "Windows".into(),
+                        network::NetworkEnvironment::Wsl => "WSL".into(),
+                    },
                 })
                 .collect();
 

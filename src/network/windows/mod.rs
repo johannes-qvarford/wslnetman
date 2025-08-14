@@ -247,6 +247,7 @@ fn parse_powershell_connections(
             port: conn.local_port.to_string(),
             direction: "LISTEN".to_string(),
             network: format!("{}:{}", conn.local_address, conn.local_port),
+            environment: NetworkEnvironment::Windows,
         };
 
         // Port parsed successfully
@@ -283,6 +284,7 @@ fn parse_netstat_output(output_str: &str) -> Vec<PortInfo> {
                 port: port.to_string(),
                 direction: "LISTENING".to_string(),
                 network: local_address.to_string(),
+                environment: NetworkEnvironment::Windows,
             };
 
             // Port parsed from netstat

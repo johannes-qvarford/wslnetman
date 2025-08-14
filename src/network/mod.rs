@@ -1,6 +1,7 @@
 // Network module
 pub mod docker;
 pub mod windows;
+pub mod wsl;
 
 /// Represents the environment where a network interface originates
 #[derive(Debug, Clone, PartialEq)]
@@ -30,6 +31,7 @@ pub struct PortInfo {
     pub port: String,
     pub direction: String,
     pub network: String,
+    pub environment: NetworkEnvironment,
 }
 
 /// Represents a Docker network with its properties and source environment
@@ -62,17 +64,31 @@ pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std
     Ok(all_interfaces)
 }
 
-/// Get active ports from Windows
+/// Get active ports from all environments
 ///
-/// This function returns active ports from Windows.
+/// This function returns active ports from both Windows and WSL.
 pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
-    let ports = windows::get_active_ports()?;
-    Ok(ports)
+    let mut all_ports = Vec::new();
+
+    // Get Windows ports
+    match windows::get_active_ports() {
+        Ok(ports) => all_ports.extend(ports),
+        Err(e) => eprintln!("Error getting Windows ports: {e}"),
+    }
+
+    // Get WSL ports
+    match wsl::get_active_ports() {
+        Ok(ports) => all_ports.extend(ports),
+        Err(e) => eprintln!("Error getting WSL ports: {e}"),
+    }
+
+    Ok(all_ports)
 }
 
 /// Filter ports associated with a specific network interface
 ///
-/// This function filters ports based on matching IP addresses between the interface and port bindings.
+/// This function filters ports based on matching IP addresses between the interface and port bindings,
+/// respecting environment boundaries (Windows ports only for Windows interfaces, WSL ports only for WSL interfaces).
 pub fn filter_ports_for_interface(
     interface: &NetworkInterface,
     all_ports: &[PortInfo],
@@ -84,7 +100,30 @@ pub fn filter_ports_for_interface(
     interface_ips.extend(interface.ipv6_addresses.clone());
 
     for port in all_ports.iter() {
-        // Extract the IP address from the network field (format: "ip:port")
+        // First check: Only match ports from the same environment
+        // Exception: WSL processes bound to 0.0.0.0 can be accessed from Windows (WSL2 port forwarding)
+        let environment_matches = match (&interface.environment, &port.environment) {
+            // Same environment - always allow
+            (NetworkEnvironment::Windows, NetworkEnvironment::Windows) => true,
+            (NetworkEnvironment::Wsl, NetworkEnvironment::Wsl) => true,
+            // WSL processes on 0.0.0.0 are accessible from Windows due to WSL2 port forwarding
+            (NetworkEnvironment::Windows, NetworkEnvironment::Wsl) => {
+                let port_ip = if let Some(colon_pos) = port.network.rfind(':') {
+                    &port.network[..colon_pos]
+                } else {
+                    &port.network
+                };
+                port_ip == "0.0.0.0" || port_ip == "::"
+            }
+            // Windows processes are not accessible from WSL
+            (NetworkEnvironment::Wsl, NetworkEnvironment::Windows) => false,
+        };
+
+        if !environment_matches {
+            continue;
+        }
+
+        // Second check: IP address matching
         let port_ip = if let Some(colon_pos) = port.network.rfind(':') {
             port.network[..colon_pos].to_string()
         } else {
@@ -92,13 +131,13 @@ pub fn filter_ports_for_interface(
         };
 
         // Check if the port's network address matches any of the interface's IPs
-        // Also include ports bound to 0.0.0.0 or :: (all interfaces)
-        let matches = interface_ips.contains(&port_ip)
+        // Also include ports bound to 0.0.0.0 or :: (all interfaces within the same environment)
+        let ip_matches = interface_ips.contains(&port_ip)
             || port_ip == "0.0.0.0"
             || port_ip == "::"
             || port_ip == "*";
 
-        if matches {
+        if ip_matches {
             filtered_ports.push(port.clone());
         }
     }
