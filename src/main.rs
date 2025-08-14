@@ -62,21 +62,32 @@ fn refresh_all_data(app_weak: &slint::Weak<MainWindow>) {
     }
 
     // Refresh ports
+    println!("MAIN: Starting port refresh...");
     match get_active_ports() {
         Ok(ports) => {
+            println!("MAIN: Converting {} ports to Slint format", ports.len());
+
             // Convert to Slint-compatible format
             let slint_ports: Vec<slint_generatedMainWindow::PortInfo> = ports
                 .into_iter()
-                .map(|port| slint_generatedMainWindow::PortInfo {
-                    process_id: port.process_id.into(),
-                    process_name: port.process_name.into(),
-                    protocol: port.protocol.into(),
-                    port: port.port.into(),
-                    direction: port.direction.into(),
-                    network: port.network.into(),
+                .enumerate()
+                .map(|(idx, port)| {
+                    println!(
+                        "MAIN: Port {}: {}:{} process='{}' network='{}'",
+                        idx, port.protocol, port.port, port.process_name, port.network
+                    );
+                    slint_generatedMainWindow::PortInfo {
+                        process_id: port.process_id.into(),
+                        process_name: port.process_name.into(),
+                        protocol: port.protocol.into(),
+                        port: port.port.into(),
+                        direction: port.direction.into(),
+                        network: port.network.into(),
+                    }
                 })
                 .collect();
 
+            println!("MAIN: Setting {} ports in UI", slint_ports.len());
             app.set_ports(slint_ports.as_slice().into());
         }
         Err(e) => {

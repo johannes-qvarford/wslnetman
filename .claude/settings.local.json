@@ -13,7 +13,10 @@
       "Bash(git commit:*)",
       "Bash(./build-and-run-windows.sh:*)",
       "Bash(cargo:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(cat:*)",
+      "Bash(./build-windows.sh:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

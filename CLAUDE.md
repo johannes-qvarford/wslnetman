@@ -100,3 +100,6 @@ The application runs in WSL2 and can demonstrate WSL2's automatic port forwardin
 - Mock/default data is provided when actual system commands fail
 - UI updates via callbacks from async operations
 - Cross-platform compatibility handled at compile time with `#[cfg]` attributes
+
+## Development Reminders
+- **ALWAYS Use build-and-run-windows.sh script to test on Windows through WSL**

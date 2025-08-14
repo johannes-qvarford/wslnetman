@@ -44,22 +44,35 @@ pub struct DockerNetwork {
 
 /// Get network interfaces from all environments
 ///
-/// This function returns network interfaces from Windows, WSL, and Docker environments.
+/// This function returns network interfaces from the appropriate environment based on the target platform.
 pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std::error::Error>> {
     let mut all_interfaces = Vec::new();
 
-    // Get Windows network interfaces (through WSL)
-    match windows::get_network_interfaces() {
-        Ok(interfaces) => all_interfaces.extend(interfaces),
-        Err(e) => eprintln!("Error getting Windows network interfaces: {e}"),
+    if cfg!(target_os = "windows") {
+        println!("MAIN: Getting Windows network interfaces");
+        // When running on Windows, only get Windows network interfaces
+        match windows::get_network_interfaces() {
+            Ok(interfaces) => all_interfaces.extend(interfaces),
+            Err(e) => eprintln!("Error getting Windows network interfaces: {e}"),
+        }
+    } else {
+        println!("MAIN: Getting WSL/Linux network interfaces");
+        // When running on WSL/Linux, get both Windows (via PowerShell) and WSL interfaces
+        match windows::get_network_interfaces() {
+            Ok(interfaces) => all_interfaces.extend(interfaces),
+            Err(e) => eprintln!("Error getting Windows network interfaces via WSL: {e}"),
+        }
+
+        match wsl::get_network_interfaces() {
+            Ok(interfaces) => all_interfaces.extend(interfaces),
+            Err(e) => eprintln!("Error getting WSL network interfaces: {e}"),
+        }
     }
 
-    // Get WSL network interfaces
-    match wsl::get_network_interfaces() {
-        Ok(interfaces) => all_interfaces.extend(interfaces),
-        Err(e) => eprintln!("Error getting WSL network interfaces: {e}"),
-    }
-
+    println!(
+        "MAIN: Retrieved {} total network interfaces",
+        all_interfaces.len()
+    );
     Ok(all_interfaces)
 }
 
@@ -68,9 +81,18 @@ pub fn get_all_network_interfaces() -> Result<Vec<NetworkInterface>, Box<dyn std
 /// This function returns active ports from either Windows or WSL
 /// depending on the compilation target.
 pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
-    // For demonstration purposes, we'll use WSL port discovery
-    // In a real implementation, we would detect the platform and call the appropriate function
-    wsl::get_active_ports()
+    println!("MAIN: Getting active ports...");
+
+    let ports = if cfg!(target_os = "windows") {
+        println!("MAIN: Using Windows port discovery");
+        windows::get_active_ports()?
+    } else {
+        println!("MAIN: Using WSL/Linux port discovery");
+        wsl::get_active_ports()?
+    };
+
+    println!("MAIN: Retrieved {} total active ports", ports.len());
+    Ok(ports)
 }
 
 /// Filter ports associated with a specific network interface
@@ -80,13 +102,20 @@ pub fn filter_ports_for_interface(
     interface: &NetworkInterface,
     all_ports: &[PortInfo],
 ) -> Vec<PortInfo> {
+    println!("FILTER: Filtering ports for interface '{}'", interface.name);
+    println!(
+        "FILTER: Interface has {} total ports to check",
+        all_ports.len()
+    );
+
     let mut filtered_ports = Vec::new();
 
     // Collect all IP addresses from the interface
     let mut interface_ips = interface.ipv4_addresses.clone();
     interface_ips.extend(interface.ipv6_addresses.clone());
+    println!("FILTER: Interface IPs: {interface_ips:?}");
 
-    for port in all_ports {
+    for (port_idx, port) in all_ports.iter().enumerate() {
         // Extract the IP address from the network field (format: "ip:port")
         let port_ip = if let Some(colon_pos) = port.network.rfind(':') {
             port.network[..colon_pos].to_string()
@@ -96,15 +125,30 @@ pub fn filter_ports_for_interface(
 
         // Check if the port's network address matches any of the interface's IPs
         // Also include ports bound to 0.0.0.0 or :: (all interfaces)
-        if interface_ips.contains(&port_ip)
+        let matches = interface_ips.contains(&port_ip)
             || port_ip == "0.0.0.0"
             || port_ip == "::"
-            || port_ip == "*"
-        {
+            || port_ip == "*";
+
+        if matches {
+            println!(
+                "FILTER: Port {} - MATCHED: {}:{} (process: {}) on network {}",
+                port_idx, port.protocol, port.port, port.process_name, port.network
+            );
             filtered_ports.push(port.clone());
+        } else {
+            println!(
+                "FILTER: Port {} - SKIPPED: {}:{} on network {} (doesn't match interface)",
+                port_idx, port.protocol, port.port, port.network
+            );
         }
     }
 
+    println!(
+        "FILTER: Returning {} filtered ports for interface '{}'",
+        filtered_ports.len(),
+        interface.name
+    );
     filtered_ports
 }
 

@@ -15,7 +15,7 @@ echo "========================================"
 TARGET="x86_64-pc-windows-gnu"
 
 # Check for build type argument
-BUILD_TYPE="${1:-release}"
+BUILD_TYPE="${1:-debug}"
 if [ "$BUILD_TYPE" != "debug" ] && [ "$BUILD_TYPE" != "release" ]; then
     # If first argument is not build type, treat it as direct exe path or assume release
     if [ -f "$1" ]; then
@@ -68,4 +68,5 @@ echo ""
 
 # Execute the Windows binary with any remaining arguments
 # WSL handles the Windows executable execution transparently
+echo exec "$BINARY_PATH" "$@"
 exec "$BINARY_PATH" "$@"
