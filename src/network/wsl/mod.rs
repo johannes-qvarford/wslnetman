@@ -112,8 +112,8 @@ fn parse_ip_address_with_type(addr_with_prefix: &str) -> Option<(String, bool)> 
 ///
 /// This function uses the `ss` command to get active port information.
 pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
-    // Execute ss command to get listening ports
-    let output = Command::new("ss").args(["-tuln"]).output();
+    // Execute ss command to get listening ports with process information
+    let output = Command::new("ss").args(["-tulnp"]).output();
 
     let mut ports = Vec::new();
 
@@ -123,13 +123,20 @@ pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
             let output_str = String::from_utf8_lossy(&output.stdout);
 
             // Parse the output to extract port information
-            // Example line: "tcp    LISTEN  0      128          0.0.0.0:8080              0.0.0.0:*"
+            // Example line with -p: "tcp    LISTEN  0      128          0.0.0.0:8080              0.0.0.0:*    users:(("process",pid=1234,fd=5))"
             for line in output_str.lines() {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 5 && (parts[0] == "tcp" || parts[0] == "udp") {
+                    // Extract process information from the last part (if available)
+                    let (process_name, process_id) = if parts.len() >= 7 {
+                        extract_process_info(&parts[6..].join(" "))
+                    } else {
+                        ("N/A".to_string(), "N/A".to_string())
+                    };
+
                     let port_info = PortInfo {
-                        process_id: "N/A".to_string(), // ss -tuln doesn't show process info
-                        process_name: "N/A".to_string(),
+                        process_id,
+                        process_name,
                         protocol: parts[0].to_uppercase(),
                         port: extract_port(parts[4]).to_string(),
                         direction: parts[1].to_string(),
@@ -153,6 +160,33 @@ fn extract_port(address_port: &str) -> &str {
     } else {
         address_port
     }
+}
+
+/// Extract process information from ss output
+/// Format: "users:(("docker-proxy",pid=1234,fd=5))" or "users:(("systemd",pid=1,fd=42),("systemd",pid=1,fd=43))"
+fn extract_process_info(process_info: &str) -> (String, String) {
+    // Look for the pattern users:((process_name,pid=number,fd=number))
+    if let Some(start) = process_info.find("users:((") {
+        let after_start = &process_info[start + 8..]; // Skip "users:(("
+
+        // Find the first comma to get the process name
+        if let Some(comma_pos) = after_start.find(',') {
+            let process_name = after_start[1..comma_pos - 1].to_string(); // Remove quotes
+
+            // Look for pid= pattern
+            if let Some(pid_start) = after_start.find("pid=") {
+                let after_pid = &after_start[pid_start + 4..];
+
+                // Find the comma after the pid number
+                if let Some(pid_end) = after_pid.find(',') {
+                    let pid_str = &after_pid[..pid_end];
+                    return (process_name, pid_str.to_string());
+                }
+            }
+        }
+    }
+
+    ("N/A".to_string(), "N/A".to_string())
 }
 
 /// Parse MAC addresses from ip -br link show output

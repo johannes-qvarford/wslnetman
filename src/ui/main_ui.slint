@@ -36,6 +36,7 @@ export component MainWindow inherits Window {
     callback show-network-popup();
     callback docker-network-selected(int);
     callback copy-to-clipboard(string);
+    callback kill-process(string);
     
     VerticalBox {
         HorizontalBox {
@@ -148,6 +149,7 @@ export component MainWindow inherits Window {
         filtered-ports: filtered-ports;
         show-modal <=> show-network-detail;
         copy-to-clipboard(data) => { copy-to-clipboard(data); }
+        kill-process(process_id) => { kill-process(process_id); }
     }
     
     // Docker Network Detail Modal Overlay

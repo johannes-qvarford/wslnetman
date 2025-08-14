@@ -7,6 +7,7 @@ export component NetworkDetailModal inherits Rectangle {
     in-out property <bool> show-modal: false;
     
     callback copy-to-clipboard(string);
+    callback kill-process(string);
     
     width: 100%;
     height: 100%;
@@ -216,11 +217,13 @@ export component NetworkDetailModal inherits Rectangle {
                             
                             // Port headers
                             HorizontalBox {
-                                Text { text: "Protocol"; width: 70px; font-weight: 600; font-size: 12px; color: #cccccc; }
-                                Text { text: "Port"; width: 70px; font-weight: 600; font-size: 12px; color: #cccccc; }
-                                Text { text: "State"; width: 70px; font-weight: 600; font-size: 12px; color: #cccccc; }
-                                Text { text: "Process"; width: 100px; font-weight: 600; font-size: 12px; color: #cccccc; }
-                                Text { text: "Address"; width: 100px; font-weight: 600; font-size: 12px; color: #cccccc; }
+                                Text { text: "Protocol"; width: 60px; font-weight: 600; font-size: 12px; color: #cccccc; }
+                                Text { text: "Port"; width: 60px; font-weight: 600; font-size: 12px; color: #cccccc; }
+                                Text { text: "State"; width: 60px; font-weight: 600; font-size: 12px; color: #cccccc; }
+                                Text { text: "Process"; width: 90px; font-weight: 600; font-size: 12px; color: #cccccc; }
+                                Text { text: "PID"; width: 50px; font-weight: 600; font-size: 12px; color: #cccccc; }
+                                Text { text: "Address"; width: 90px; font-weight: 600; font-size: 12px; color: #cccccc; }
+                                Text { text: "Action"; width: 60px; font-weight: 600; font-size: 12px; color: #cccccc; }
                             }
                             
                             Rectangle {
@@ -231,14 +234,14 @@ export component NetworkDetailModal inherits Rectangle {
                             for port in filtered-ports : HorizontalBox {
                                 Text { 
                                     text: port.protocol; 
-                                    width: 70px; 
+                                    width: 60px; 
                                     font-family: "monospace";
                                     font-size: 11px;
                                     color: #ffffff;
                                 }
                                 Button {
                                     text: port.port;
-                                    width: 70px;
+                                    width: 60px;
                                     height: 26px;
                                     clicked => {
                                         copy-to-clipboard(port.port);
@@ -246,24 +249,46 @@ export component NetworkDetailModal inherits Rectangle {
                                 }
                                 Text { 
                                     text: port.direction; 
-                                    width: 70px; 
+                                    width: 60px; 
                                     font-family: "monospace";
                                     font-size: 11px;
                                     color: port.direction == "LISTEN" ? #66ff66 : #cccccc;
                                 }
                                 Text { 
                                     text: port.process_name; 
-                                    width: 100px; 
+                                    width: 90px; 
                                     font-size: 11px;
                                     color: #ffffff;
                                 }
+                                Text { 
+                                    text: port.process_id; 
+                                    width: 50px; 
+                                    font-family: "monospace";
+                                    font-size: 11px;
+                                    color: #ffcc66;
+                                }
                                 Button {
                                     text: port.network;
-                                    width: 100px;
+                                    width: 90px;
                                     height: 26px;
                                     clicked => {
                                         copy-to-clipboard(port.network);
                                     }
+                                }
+                                if port.process_id != "N/A" && port.process_id != "0" && port.process_id != "1" && port.process_id != "4" : Button {
+                                    text: "Kill";
+                                    width: 50px;
+                                    height: 26px;
+                                    clicked => {
+                                        kill-process(port.process_id);
+                                    }
+                                }
+                                if port.process_id == "N/A" || port.process_id == "0" || port.process_id == "1" || port.process_id == "4" : Text {
+                                    text: "-";
+                                    width: 50px;
+                                    font-size: 11px;
+                                    color: #888888;
+                                    horizontal-alignment: center;
                                 }
                             }
                         }

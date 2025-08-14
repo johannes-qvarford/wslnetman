@@ -298,6 +298,60 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Handle docker network selection
     let app_weak = app.as_weak();
+    app.on_kill_process(move |process_id| {
+        let process_id_str = process_id.to_string();
+
+        // Safety check - don't allow killing critical system processes
+        if process_id_str == "0"
+            || process_id_str == "1"
+            || process_id_str == "4"
+            || process_id_str == "N/A"
+        {
+            eprintln!("Cannot kill system process with PID: {process_id_str}");
+            return;
+        }
+
+        // Parse PID to ensure it's valid
+        match process_id_str.parse::<u32>() {
+            Ok(pid) => {
+                if pid < 10 {
+                    eprintln!("Cannot kill system process with PID: {pid}");
+                    return;
+                }
+
+                // Kill the process
+                let result = if cfg!(target_os = "windows") {
+                    // Windows: Use taskkill
+                    std::process::Command::new("taskkill")
+                        .args(["/F", "/PID", &process_id_str])
+                        .output()
+                } else {
+                    // Linux/WSL: Use kill
+                    std::process::Command::new("kill")
+                        .args(["-9", &process_id_str])
+                        .output()
+                };
+
+                match result {
+                    Ok(output) => {
+                        if output.status.success() {
+                            println!("Successfully killed process with PID: {process_id_str}");
+                        } else {
+                            let stderr = String::from_utf8_lossy(&output.stderr);
+                            eprintln!("Failed to kill process {process_id_str}: {stderr}");
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Error executing kill command for PID {process_id_str}: {e}");
+                    }
+                }
+            }
+            Err(_) => {
+                eprintln!("Invalid process ID format: {process_id_str}");
+            }
+        }
+    });
+
     app.on_docker_network_selected(move |index| {
         let app = app_weak.unwrap();
         // Docker network selected
