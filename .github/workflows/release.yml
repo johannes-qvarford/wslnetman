@@ -1,0 +1,96 @@
+name: Release Windows Installer
+
+on:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Cache cargo index
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Cache build artifacts
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Install cargo-wix
+      run: cargo install cargo-wix
+      
+    - name: Build release binary
+      run: cargo build --release --target x86_64-pc-windows-msvc
+      
+    - name: Initialize WiX configuration
+      run: cargo wix init --force
+      
+    - name: Build MSI installer
+      run: cargo wix --no-build --target x86_64-pc-windows-msvc
+      
+    - name: Generate release tag
+      id: tag
+      run: |
+        $SHORT_SHA = "${{ github.sha }}".Substring(0, 7)
+        $TAG = "release-$SHORT_SHA"
+        echo "tag=$TAG" >> $env:GITHUB_OUTPUT
+        echo "Generated tag: $TAG"
+        
+    - name: Find MSI file
+      id: msi
+      run: |
+        $MSI_PATH = Get-ChildItem -Path "target/x86_64-pc-windows-msvc/wix" -Filter "*.msi" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        $MSI_NAME = Split-Path $MSI_PATH -Leaf
+        echo "msi_path=$MSI_PATH" >> $env:GITHUB_OUTPUT
+        echo "msi_name=$MSI_NAME" >> $env:GITHUB_OUTPUT
+        echo "Found MSI: $MSI_PATH"
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.tag }}
+        release_name: WSL Network Manager ${{ steps.tag.outputs.tag }}
+        body: |
+          Automated release of WSL Network Manager
+          
+          **Installation:**
+          Download and run the MSI installer for Windows.
+          
+          **Commit:** ${{ github.sha }}
+          **Build Date:** ${{ github.run_id }}
+        draft: false
+        prerelease: false
+        
+    - name: Upload MSI to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ steps.msi.outputs.msi_path }}
+        asset_name: ${{ steps.msi.outputs.msi_name }}
+        asset_content_type: application/x-msi
