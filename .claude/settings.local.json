@@ -18,7 +18,9 @@
       "Bash(./build-windows.sh:*)",
       "Bash(grep:*)",
       "Bash(./run-windows.sh:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "WebFetch(domain:docs.slint.dev)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

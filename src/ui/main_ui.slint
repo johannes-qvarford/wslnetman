@@ -9,6 +9,7 @@ export component MainWindow inherits Window {
     width: 1024px;
     height: 768px;
     title: "WSL Network Manager";
+    icon: @image-url("icon.png");
     
     in property <[NetworkInterface]> network-interfaces: [];
     in property <[PortInfo]> ports: [];
