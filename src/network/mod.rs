@@ -85,6 +85,7 @@ pub fn get_active_ports() -> Result<Vec<PortInfo>, Box<dyn std::error::Error>> {
     Ok(all_ports)
 }
 
+/// Log error messages to a file for debugging
 /// Filter ports associated with a specific network interface
 ///
 /// This function filters ports based on matching IP addresses between the interface and port bindings,
@@ -100,23 +101,14 @@ pub fn filter_ports_for_interface(
     interface_ips.extend(interface.ipv6_addresses.clone());
 
     for port in all_ports.iter() {
-        // First check: Only match ports from the same environment
-        // Exception: WSL processes bound to 0.0.0.0 can be accessed from Windows (WSL2 port forwarding)
+        // Only match ports from the same environment
+        // Windows interfaces show Windows processes (including wslrelay.exe for forwarded ports)
+        // WSL interfaces show WSL processes (including docker-proxy and other WSL services)
         let environment_matches = match (&interface.environment, &port.environment) {
-            // Same environment - always allow
             (NetworkEnvironment::Windows, NetworkEnvironment::Windows) => true,
             (NetworkEnvironment::Wsl, NetworkEnvironment::Wsl) => true,
-            // WSL processes on 0.0.0.0 are accessible from Windows due to WSL2 port forwarding
-            (NetworkEnvironment::Windows, NetworkEnvironment::Wsl) => {
-                let port_ip = if let Some(colon_pos) = port.network.rfind(':') {
-                    &port.network[..colon_pos]
-                } else {
-                    &port.network
-                };
-                port_ip == "0.0.0.0" || port_ip == "::"
-            }
-            // Windows processes are not accessible from WSL
-            (NetworkEnvironment::Wsl, NetworkEnvironment::Windows) => false,
+            // No cross-environment matching - each environment shows its own processes
+            _ => false,
         };
 
         if !environment_matches {
@@ -132,10 +124,13 @@ pub fn filter_ports_for_interface(
 
         // Check if the port's network address matches any of the interface's IPs
         // Also include ports bound to 0.0.0.0 or :: (all interfaces within the same environment)
+        // Include loopback addresses (127.0.0.1, ::1) as they're accessible from all interfaces
         let ip_matches = interface_ips.contains(&port_ip)
             || port_ip == "0.0.0.0"
             || port_ip == "::"
-            || port_ip == "*";
+            || port_ip == "*"
+            || port_ip == "127.0.0.1"
+            || port_ip == "::1";
 
         if ip_matches {
             filtered_ports.push(port.clone());
