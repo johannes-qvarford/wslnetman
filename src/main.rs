@@ -109,7 +109,8 @@ fn refresh_all_data(app_weak: &slint::Weak<MainWindow>) {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = MainWindow::new()?;
 
     // Load initial data on startup
