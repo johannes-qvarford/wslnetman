@@ -49,19 +49,19 @@ jobs:
         echo "tag=$TAG" >> $env:GITHUB_OUTPUT
         echo "Generated tag: $TAG"
 
-    - name: Prepare staging
+    - name: Prepare dist and verify binary
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
-        New-Item -ItemType Directory -Path 'staging' -Force | Out-Null
         New-Item -ItemType Directory -Path 'dist' -Force | Out-Null
-        Copy-Item "target\release\wslnetman.exe" "staging\wslnetman.exe" -Force
+        if (-not (Test-Path "target\release\wslnetman.exe")) { throw "target\release\wslnetman.exe not found" }
+        Get-Item "target\release\wslnetman.exe" | Format-List Name,Length,FullName
 
     - name: Run makensis
       uses: joncloud/makensis-action@v4
       with:
         script-file: installer/install.nsi
-        arguments: /DVERSION=${{ steps.tag.outputs.tag }}
+        arguments: /DVERSION=${{ steps.tag.outputs.tag }} /DAPP_BIN="target\release\wslnetman.exe"
 
     - name: Set installer output vars
       id: nsis_meta

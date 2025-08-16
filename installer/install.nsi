@@ -2,6 +2,10 @@
 !define VERSION "dev"
 !endif
 
+!ifndef APP_BIN
+!define APP_BIN "target\release\wslnetman.exe"
+!endif
+
 !define APP_NAME "WSL Network Manager"
 !define APP_ID   "WSLNetMan"
 
@@ -22,7 +26,7 @@ RequestExecutionLevel admin
 
 Section "Install"
   SetOutPath "$INSTDIR"
-  File "staging\wslnetman.exe"
+  File "${APP_BIN}"
 
   CreateDirectory "$SMPROGRAMS\WSLNetMan"
   CreateShortCut "$SMPROGRAMS\WSLNetMan\WSLNetMan.lnk" "$INSTDIR\wslnetman.exe"
