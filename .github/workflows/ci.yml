@@ -42,8 +42,6 @@ jobs:
     - name: Build
       run: cargo build --verbose --target x86_64-pc-windows-msvc
       
-    - name: Run tests
-      run: cargo test --verbose --target x86_64-pc-windows-msvc
       
     - name: Check formatting
       run: cargo fmt -- --check

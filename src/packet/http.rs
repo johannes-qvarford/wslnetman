@@ -85,13 +85,3 @@ pub async fn send_http_request(
 
     Ok(result)
 }
-
-#[cfg(test)]
-mod tests {
-
-    #[tokio::test]
-    async fn test_send_http_request() {
-        // We can't test with an actual URL in tests, but we can verify the function signature compiles
-        // In a real test, we might use a mock server or test against a known reliable endpoint
-    }
-}

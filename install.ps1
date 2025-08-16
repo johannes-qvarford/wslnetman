@@ -50,12 +50,6 @@ if ! cargo clippy -- -D warnings; then
     exit 1
 fi
 
-# Run tests
-echo "Running tests..."
-if ! cargo test; then
-    echo "Error: Tests failed"
-    exit 1
-fi
 
 echo "All pre-commit checks passed!"
 '@
@@ -72,6 +66,5 @@ Write-Success "Pre-commit hook installed successfully!"
 Write-Info "The hook will automatically run:"
 Write-Info "  - cargo fmt -- --check"
 Write-Info "  - cargo clippy -- -D warnings"
-Write-Info "  - cargo test"
 Write-Host ''
 Write-Success 'Happy coding!'

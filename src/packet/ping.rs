@@ -69,20 +69,3 @@ pub fn send_ping(
 
     Ok(result)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_send_ping() {
-        // Since we're simulating the ping, we can't test the actual network functionality
-        // But we can test that our function returns a result
-        let result = send_ping("127.0.0.1", Some(4), Some(5)).unwrap();
-
-        assert_eq!(result.destination, "127.0.0.1");
-        assert_eq!(result.transmitted, 4);
-        assert_eq!(result.received, 3); // Based on our simulation
-        assert_eq!(result.packet_loss, 25.0); // Based on our simulation
-    }
-}

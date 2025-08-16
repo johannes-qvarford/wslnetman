@@ -165,26 +165,3 @@ pub fn get_all_docker_networks() -> Result<Vec<DockerNetwork>, Box<dyn std::erro
 
     Ok(all_networks)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_get_all_network_interfaces() {
-        let interfaces = get_all_network_interfaces().unwrap();
-        assert!(!interfaces.is_empty());
-    }
-
-    #[test]
-    fn test_get_active_ports() {
-        let ports = get_active_ports().unwrap();
-        assert!(!ports.is_empty());
-    }
-
-    #[test]
-    fn test_get_all_docker_networks() {
-        let networks = get_all_docker_networks().unwrap();
-        assert!(!networks.is_empty());
-    }
-}

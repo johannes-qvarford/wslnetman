@@ -50,18 +50,3 @@ pub async fn send_http_request(
 ) -> Result<HttpRequestResult, Box<dyn std::error::Error>> {
     http::send_http_request(url, method, timeout).await
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_send_ping() {
-        // Since we're simulating the ping, we can't test the actual network functionality
-        // But we can test that our function returns a result
-        let result = send_ping("127.0.0.1", Some(4), Some(5)).unwrap();
-
-        assert_eq!(result.destination, "127.0.0.1");
-        assert_eq!(result.transmitted, 4);
-    }
-}

@@ -5991,7 +5991,6 @@ dependencies = [
  "serde_json",
  "slint",
  "slint-build",
- "tempfile",
  "tokio",
  "tokio-util",
  "windows 0.52.0",

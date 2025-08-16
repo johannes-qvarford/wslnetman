@@ -49,7 +49,3 @@ windows = { version = "0.52", features = [
 [build-dependencies]
 slint-build = "1.0"
 winresource = "0.1"
-
-[dev-dependencies]
-# Testing dependencies
-tempfile = "3.0"
