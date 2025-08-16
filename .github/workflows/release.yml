@@ -57,11 +57,18 @@ jobs:
         if (-not (Test-Path "target\release\wslnetman.exe")) { throw "target\release\wslnetman.exe not found" }
         Get-Item "target\release\wslnetman.exe" | Format-List Name,Length,FullName
 
+    - name: Compute absolute binary path
+      id: paths
+      shell: pwsh
+      run: |
+        $bin = (Resolve-Path "target\release\wslnetman.exe").Path
+        echo "bin=$bin" >> $env:GITHUB_OUTPUT
+
     - name: Run makensis
       uses: joncloud/makensis-action@v4
       with:
         script-file: installer/install.nsi
-        arguments: /DVERSION=${{ steps.tag.outputs.tag }} /DAPP_BIN="target\release\wslnetman.exe"
+        arguments: /DVERSION=${{ steps.tag.outputs.tag }} /DAPP_BIN=${{ steps.paths.outputs.bin }}
 
     - name: Set installer output vars
       id: nsis_meta
