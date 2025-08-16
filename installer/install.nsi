@@ -6,11 +6,15 @@
 !define APP_BIN "target\release\wslnetman.exe"
 !endif
 
+!ifndef OUT_DIR
+!define OUT_DIR "dist"
+!endif
+
 !define APP_NAME "WSL Network Manager"
 !define APP_ID   "WSLNetMan"
 
 Name "${APP_NAME} ${VERSION}"
-OutFile "dist\wslnetman-${VERSION}-setup.exe"
+OutFile "${OUT_DIR}\wslnetman-${VERSION}-setup.exe"
 InstallDir "$PROGRAMFILES\WSLNetMan"
 ShowInstDetails show
 ShowUninstDetails show
@@ -23,6 +27,13 @@ RequestExecutionLevel admin
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_LANGUAGE "English"
+
+; Optional diagnostics
+!verbose push
+!verbose 4
+!echo APP_BIN=${APP_BIN}
+!echo OUT_DIR=${OUT_DIR}
+!verbose pop
 
 Section "Install"
   SetOutPath "$INSTDIR"
