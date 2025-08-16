@@ -357,8 +357,96 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    // Handle filter ports from modal search
+    let app_weak_filter = app.as_weak();
+    app.on_filter_ports(move |query| {
+        let app = app_weak_filter.unwrap();
+
+        // Get currently selected network interface
+        let selected_interface = app.get_selected_network_detail();
+        let all_ports = app.get_ports();
+
+        // Convert Slint NetworkInterface back to Rust type
+        let rust_interface = network::NetworkInterface {
+            name: selected_interface.name.to_string(),
+            ipv4_addresses: selected_interface
+                .ipv4_addresses
+                .iter()
+                .map(|ip| ip.to_string())
+                .collect(),
+            ipv6_addresses: selected_interface
+                .ipv6_addresses
+                .iter()
+                .map(|ip| ip.to_string())
+                .collect(),
+            mac_address: if selected_interface.mac_address == "N/A" {
+                None
+            } else {
+                Some(selected_interface.mac_address.to_string())
+            },
+            is_up: selected_interface.is_up,
+            is_loopback: selected_interface.is_loopback,
+            environment: match selected_interface.environment.as_str() {
+                "Windows" => network::NetworkEnvironment::Windows,
+                _ => network::NetworkEnvironment::Wsl,
+            },
+        };
+
+        // Convert all ports to Rust ports for filtering
+        let rust_ports: Vec<network::PortInfo> = all_ports
+            .iter()
+            .map(|port| network::PortInfo {
+                process_id: port.process_id.to_string(),
+                process_name: port.process_name.to_string(),
+                protocol: port.protocol.to_string(),
+                port: port.port.to_string(),
+                direction: port.direction.to_string(),
+                network: port.network.to_string(),
+                environment: match port.environment.as_str() {
+                    "Windows" => network::NetworkEnvironment::Windows,
+                    _ => network::NetworkEnvironment::Wsl,
+                },
+            })
+            .collect();
+
+        // First filter ports for the selected interface as before
+        let mut filtered = filter_ports_for_interface(&rust_interface, &rust_ports);
+
+        // Apply search filter if any
+        let q = query.to_string();
+        let q_lc = q.to_lowercase();
+        if !q.is_empty() {
+            filtered.retain(|p| {
+                let name = p.process_name.to_lowercase();
+                let pid = p.process_id.to_lowercase();
+                let port_s = p.port.to_lowercase();
+                name.contains(&q_lc) || pid.contains(&q_lc) || port_s.contains(&q_lc)
+            });
+        }
+
+        // Convert back to Slint type
+        let slint_filtered: Vec<slint_generatedMainWindow::PortInfo> = filtered
+            .into_iter()
+            .map(|port| slint_generatedMainWindow::PortInfo {
+                process_id: port.process_id.into(),
+                process_name: port.process_name.into(),
+                protocol: port.protocol.into(),
+                port: port.port.into(),
+                direction: port.direction.into(),
+                network: port.network.into(),
+                environment: match port.environment {
+                    network::NetworkEnvironment::Windows => "Windows".into(),
+                    network::NetworkEnvironment::Wsl => "WSL".into(),
+                },
+            })
+            .collect();
+
+        app.set_filtered_ports(slint_filtered.as_slice().into());
+    });
+
+    let app_weak_docker = app.as_weak();
     app.on_docker_network_selected(move |index| {
-        let app = app_weak.unwrap();
+        let app = app_weak_docker.unwrap();
         // Docker network selected
 
         // Get current docker networks
