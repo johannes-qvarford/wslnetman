@@ -310,7 +310,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Handle docker network selection
-    let app_weak = app.as_weak();
+    let _app_weak = app.as_weak();
     app.on_kill_process(move |process_id| {
         let process_id_str = process_id.to_string();
 
