@@ -145,3 +145,29 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Getting Help
 
 If you encounter any issues, please [open an issue](https://github.com/your-username/wslnetman/issues) on GitHub.
+
+
+## Packaging (MSI) and CI artifact lookup
+
+If your CI or local scripts need to locate the generated MSI, prefer using the provided PowerShell helper to avoid null-path errors when a specific target triple directory does not exist:
+
+```powershell
+# Returns the full path to the newest MSI under ./target
+$MSI_PATH = powershell -NoProfile -ExecutionPolicy Bypass -File .\find-msi.ps1
+
+# Safely derive the file name
+if (-not [string]::IsNullOrWhiteSpace($MSI_PATH)) {
+  $MSI_NAME = Split-Path $MSI_PATH -Leaf
+  Write-Host "MSI: $MSI_NAME ($MSI_PATH)"
+} else {
+  Write-Error "No MSI was found. Ensure your packaging step produced an .msi under 'target'."
+  exit 1
+}
+```
+
+The helper searches these locations (in order):
+- target\x86_64-pc-windows-msvc\wix\*.msi
+- target\x86_64-pc-windows-gnu\wix\*.msi
+- target\**\*.msi (fallback)
+
+This prevents errors like "Cannot bind argument to parameter 'Path' because it is null" when Split-Path is used on a missing MSI path.
